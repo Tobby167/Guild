@@ -1,142 +1,539 @@
 .page {
-  --background: #fafafa;
-  --foreground: #fff;
-
-  --text-primary: #000;
-  --text-secondary: #666;
-
-  --button-primary-hover: #383838;
-  --button-secondary-hover: #f2f2f2;
-  --button-secondary-border: #ebebeb;
-
+  --accent: #78906d;
+  --accent-soft: rgba(120, 144, 109, 0.16);
+  --surface: rgba(255, 249, 241, 0.82);
+  --surface-strong: rgba(255, 249, 241, 0.96);
+  --text-main: #1d1710;
+  --text-soft: rgba(29, 23, 16, 0.74);
+  --panel-shadow: 0 28px 70px rgba(22, 18, 14, 0.14);
+  position: relative;
+  isolation: isolate;
   display: flex;
-  flex: 1;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  font-family: var(--font-geist-sans);
-  background-color: var(--background);
+  gap: 3rem;
+  width: 100%;
+  padding: 1.5rem;
 }
 
-.main {
+.studio {
+  --accent: #708d78;
+  --accent-soft: rgba(112, 141, 120, 0.18);
+}
+
+.trade {
+  --accent: #a96447;
+  --accent-soft: rgba(169, 100, 71, 0.18);
+}
+
+.backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background:
+    radial-gradient(circle at top right, var(--accent-soft), transparent 32%),
+    radial-gradient(circle at 12% 18%, rgba(200, 161, 90, 0.18), transparent 24%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.3), transparent 42%);
+  pointer-events: none;
+}
+
+.heroShell,
+.section,
+.footerCallout {
+  width: min(1180px, 100%);
+  margin: 0 auto;
+}
+
+.heroShell {
+  padding-top: 0.25rem;
+}
+
+.topbar {
   display: flex;
-  flex: 1;
-  width: 100%;
-  max-width: 800px;
-  flex-direction: column;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
-  background-color: var(--foreground);
-  padding: 120px 60px;
+  gap: 1.5rem;
+  margin-bottom: 2rem;
 }
 
-.intro {
+.brandLockup {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.brandMark {
+  display: grid;
+  place-items: center;
+  width: 3rem;
+  height: 3rem;
+  border-radius: 0.95rem;
+  background: linear-gradient(145deg, var(--obsidian), #31261d);
+  color: var(--canvas);
+  font-size: 0.9rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  box-shadow: 0 16px 40px rgba(11, 11, 11, 0.2);
+}
+
+.brandName {
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.brandTag {
+  color: var(--text-soft);
+  font-size: 0.88rem;
+}
+
+.jumpLinks {
+  display: flex;
+  gap: 1.25rem;
+  color: var(--text-soft);
+  font-size: 0.94rem;
+}
+
+.jumpLinks a {
+  position: relative;
+}
+
+.jumpLinks a::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: -0.2rem;
+  width: 100%;
+  height: 1px;
+  background: currentColor;
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.3s ease;
+}
+
+.jumpLinks a:hover::after {
+  transform: scaleX(1);
+}
+
+.hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(320px, 0.9fr);
+  gap: 2rem;
+  align-items: stretch;
+}
+
+.heroCopy,
+.heroPanel,
+.scopeCard,
+.footerCallout {
+  border: 1px solid rgba(78, 60, 39, 0.11);
+  box-shadow: var(--panel-shadow);
+  backdrop-filter: blur(22px);
+}
+
+.heroCopy {
+  padding: clamp(2rem, 3vw, 3.25rem);
+  border-radius: 2rem;
+  background:
+    linear-gradient(180deg, rgba(255, 251, 245, 0.95), rgba(246, 238, 226, 0.93)),
+    repeating-linear-gradient(
+      120deg,
+      transparent,
+      transparent 18px,
+      rgba(200, 161, 90, 0.04) 18px,
+      rgba(200, 161, 90, 0.04) 36px
+    );
+}
+
+.eyebrow,
+.sectionEyebrow,
+.toggleLabel,
+.panelKicker,
+.roadmapPhase {
+  color: var(--accent);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.heroCopy h1 {
+  max-width: 12ch;
+  margin-top: 1rem;
+  font-size: clamp(3.6rem, 7vw, 6.4rem);
+  line-height: 0.92;
+  text-wrap: balance;
+}
+
+.lead {
+  max-width: 60ch;
+  margin-top: 1.4rem;
+  font-size: 1.08rem;
+  line-height: 1.85;
+  color: var(--text-soft);
+}
+
+.heroActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-top: 2rem;
+}
+
+.primaryCta,
+.secondaryCta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 3.15rem;
+  padding: 0 1.3rem;
+  border-radius: 999px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  transition:
+    transform 0.3s ease,
+    background 0.3s ease,
+    border-color 0.3s ease;
+}
+
+.primaryCta {
+  background: linear-gradient(135deg, var(--obsidian), #2c2219);
+  color: var(--canvas);
+}
+
+.secondaryCta {
+  border: 1px solid rgba(57, 44, 28, 0.16);
+  color: var(--text-main);
+  background: rgba(255, 255, 255, 0.55);
+}
+
+.primaryCta:hover,
+.secondaryCta:hover,
+.toggleActive:hover,
+.toggleButton:hover {
+  transform: translateY(-2px);
+}
+
+.statRow {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+  margin-top: 2.2rem;
+}
+
+.statRow article {
+  padding: 1rem;
+  border-radius: 1.3rem;
+  background: rgba(255, 255, 255, 0.52);
+  border: 1px solid rgba(78, 60, 39, 0.08);
+}
+
+.statRow strong {
+  display: block;
+  color: var(--accent);
+  font-size: 0.88rem;
+  letter-spacing: 0.14em;
+}
+
+.statRow span {
+  display: block;
+  margin-top: 0.55rem;
+  line-height: 1.6;
+  color: var(--text-soft);
+  font-size: 0.94rem;
+}
+
+.heroPanel {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  text-align: left;
-  gap: 24px;
+  gap: 1.25rem;
+  border-radius: 2rem;
+  padding: 1.5rem;
+  background:
+    radial-gradient(circle at top, rgba(255, 255, 255, 0.76), rgba(248, 240, 229, 0.86)),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.62), rgba(249, 244, 236, 0.88));
 }
 
-.intro h1 {
-  max-width: 320px;
-  font-size: 40px;
-  font-weight: 600;
-  line-height: 48px;
-  letter-spacing: -2.4px;
-  text-wrap: balance;
-  color: var(--text-primary);
-}
-
-.intro p {
-  max-width: 440px;
-  font-size: 18px;
-  line-height: 32px;
-  text-wrap: balance;
-  color: var(--text-secondary);
-}
-
-.intro a {
-  font-weight: 500;
-  color: var(--text-primary);
-}
-
-.ctas {
+.toggleWrap {
   display: flex;
-  flex-direction: row;
-  width: 100%;
-  max-width: 440px;
-  gap: 16px;
-  font-size: 14px;
+  flex-direction: column;
+  gap: 0.85rem;
 }
 
-.ctas a {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 40px;
-  padding: 0 16px;
-  border-radius: 128px;
-  border: 1px solid transparent;
-  transition: 0.2s;
+.toggle {
+  display: inline-flex;
+  padding: 0.35rem;
+  border-radius: 999px;
+  background: rgba(39, 30, 21, 0.08);
+}
+
+.toggleButton,
+.toggleActive {
+  border: 0;
+  border-radius: 999px;
+  padding: 0.8rem 1rem;
+  background: transparent;
+  color: var(--text-soft);
   cursor: pointer;
-  width: fit-content;
-  font-weight: 500;
+  transition:
+    transform 0.3s ease,
+    background 0.3s ease,
+    color 0.3s ease;
 }
 
-a.primary {
-  background: var(--text-primary);
-  color: var(--background);
-  gap: 8px;
+.toggleActive {
+  background: linear-gradient(135deg, var(--obsidian), #2e231a);
+  color: var(--canvas);
 }
 
-a.secondary {
-  border-color: var(--button-secondary-border);
+.panelCard {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1.55rem;
+  border-radius: 1.6rem;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.88), rgba(246, 238, 226, 0.94)),
+    linear-gradient(150deg, rgba(255, 255, 255, 0.3), transparent);
+  border: 1px solid rgba(78, 60, 39, 0.08);
 }
 
-/* Enable hover only on non-touch devices */
-@media (hover: hover) and (pointer: fine) {
-  a.primary:hover {
-    background: var(--button-primary-hover);
-    border-color: transparent;
+.panelCard h2,
+.sectionHeading h2,
+.scopeIntro h2,
+.footerCallout h2 {
+  font-size: clamp(2rem, 3vw, 3.2rem);
+  line-height: 1;
+  text-wrap: balance;
+}
+
+.panelCard p,
+.pillarCard p,
+.scopeIntro p,
+.roadmapCard p,
+.principle p,
+.footerCallout p {
+  color: var(--text-soft);
+  line-height: 1.75;
+}
+
+.eyebrow,
+.sectionEyebrow,
+.toggleLabel,
+.panelKicker,
+.roadmapPhase {
+  color: var(--accent);
+}
+
+.panelList {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 0.35rem;
+  list-style: none;
+}
+
+.panelList li {
+  padding-left: 1.15rem;
+  position: relative;
+}
+
+.panelList li::before {
+  content: "";
+  position: absolute;
+  top: 0.72rem;
+  left: 0;
+  width: 0.42rem;
+  height: 0.42rem;
+  border-radius: 999px;
+  background: var(--accent);
+}
+
+.panelNote {
+  margin-top: auto;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(78, 60, 39, 0.12);
+  color: var(--ink);
+  font-size: 0.94rem;
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.sectionHeading {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  max-width: 54rem;
+}
+
+.pillarGrid,
+.roadmapGrid {
+  display: grid;
+  gap: 1.2rem;
+}
+
+.pillarGrid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.pillarCard,
+.roadmapCard,
+.principle {
+  border-radius: 1.6rem;
+  background: rgba(255, 252, 246, 0.74);
+  border: 1px solid rgba(78, 60, 39, 0.08);
+  box-shadow: 0 18px 45px rgba(20, 16, 12, 0.08);
+}
+
+.pillarCard,
+.roadmapCard {
+  padding: 1.55rem;
+}
+
+.pillarCard h3,
+.roadmapCard h3 {
+  margin-bottom: 0.8rem;
+  font-size: 1.6rem;
+}
+
+.scopeCard {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+  gap: 1.5rem;
+  padding: 1.8rem;
+  border-radius: 2rem;
+  background:
+    linear-gradient(180deg, rgba(26, 20, 14, 0.96), rgba(35, 28, 22, 0.96)),
+    radial-gradient(circle at top, rgba(200, 161, 90, 0.1), transparent 34%);
+  color: var(--canvas);
+}
+
+.scopeIntro p {
+  color: rgba(244, 239, 232, 0.78);
+}
+
+.principles {
+  display: grid;
+  gap: 1rem;
+}
+
+.principle {
+  display: flex;
+  gap: 0.9rem;
+  align-items: flex-start;
+  padding: 1rem 1.1rem;
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.principle p {
+  color: rgba(244, 239, 232, 0.84);
+}
+
+.principleDot {
+  display: inline-block;
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 999px;
+  margin-top: 0.42rem;
+  background: linear-gradient(135deg, var(--gold), var(--accent));
+  box-shadow: 0 0 0 0.35rem rgba(200, 161, 90, 0.08);
+}
+
+.roadmapGrid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.roadmapCard {
+  position: relative;
+  overflow: hidden;
+}
+
+.roadmapCard::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 0;
+  height: 0.25rem;
+  background: linear-gradient(90deg, var(--gold), var(--accent));
+}
+
+.footerCallout {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  padding: 1.8rem;
+  margin-bottom: 1rem;
+  border-radius: 2rem;
+  background:
+    linear-gradient(180deg, rgba(255, 251, 245, 0.9), rgba(244, 236, 223, 0.92)),
+    radial-gradient(circle at right, rgba(200, 161, 90, 0.16), transparent 35%);
+}
+
+@media (max-width: 980px) {
+  .hero,
+  .scopeCard,
+  .pillarGrid,
+  .roadmapGrid {
+    grid-template-columns: 1fr;
   }
 
-  a.secondary:hover {
-    background: var(--button-secondary-hover);
-    border-color: transparent;
+  .statRow {
+    grid-template-columns: 1fr;
   }
 }
 
-@media (max-width: 600px) {
-  .main {
-    padding: 48px 24px;
-  }
-
-  .intro {
-    gap: 16px;
-  }
-
-  .intro h1 {
-    font-size: 32px;
-    line-height: 40px;
-    letter-spacing: -1.92px;
-  }
-}
-
-@media (prefers-color-scheme: dark) {
-  .logo {
-    filter: invert();
-  }
-
+@media (max-width: 720px) {
   .page {
-    --background: #000;
-    --foreground: #000;
+    padding: 1rem;
+    gap: 2rem;
+  }
 
-    --text-primary: #ededed;
-    --text-secondary: #999;
+  .topbar,
+  .footerCallout {
+    flex-direction: column;
+    align-items: flex-start;
+  }
 
-    --button-primary-hover: #ccc;
-    --button-secondary-hover: #1a1a1a;
-    --button-secondary-border: #1a1a1a;
+  .jumpLinks,
+  .heroActions {
+    width: 100%;
+  }
+
+  .jumpLinks {
+    flex-wrap: wrap;
+    gap: 0.9rem 1rem;
+  }
+
+  .primaryCta,
+  .secondaryCta {
+    width: 100%;
+  }
+
+  .heroCopy,
+  .heroPanel,
+  .scopeCard,
+  .footerCallout {
+    border-radius: 1.5rem;
+  }
+
+  .heroCopy,
+  .heroPanel,
+  .scopeCard,
+  .footerCallout,
+  .pillarCard,
+  .roadmapCard {
+    padding: 1.25rem;
+  }
+
+  .panelCard h2,
+  .sectionHeading h2,
+  .scopeIntro h2,
+  .footerCallout h2 {
+    font-size: clamp(1.8rem, 9vw, 2.5rem);
   }
 }

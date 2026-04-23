@@ -5,6 +5,9 @@ export const metadata: Metadata = {
   title: "Guild",
   description:
     "A premium home for fiber and textile creators to showcase work, earn trusted commissions, and build with more structure.",
+  icons: {
+    icon: "/guild-favicon.svg",
+  },
 };
 
 export default function RootLayout({

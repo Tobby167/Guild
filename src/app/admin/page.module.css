@@ -1,0 +1,355 @@
+.page {
+  min-height: 100vh;
+  position: relative;
+  padding: 1.5rem;
+  color: #f4efe8;
+  background:
+    radial-gradient(circle at top right, rgba(200, 161, 90, 0.16), transparent 28%),
+    radial-gradient(circle at left, rgba(130, 95, 67, 0.14), transparent 24%),
+    linear-gradient(180deg, #090909 0%, #13100d 45%, #0c0a09 100%);
+}
+
+.backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.02), transparent 48%),
+    repeating-linear-gradient(
+      120deg,
+      transparent,
+      transparent 22px,
+      rgba(200, 161, 90, 0.03) 22px,
+      rgba(200, 161, 90, 0.03) 44px
+    );
+}
+
+.shell {
+  position: relative;
+  z-index: 1;
+  width: min(1240px, 100%);
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1.4rem;
+}
+
+.header,
+.panel,
+.statCard {
+  border: 1px solid rgba(255, 243, 226, 0.08);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.26);
+  backdrop-filter: blur(20px);
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  gap: 1.5rem;
+  padding: 1.8rem;
+  border-radius: 2rem;
+  background:
+    linear-gradient(180deg, rgba(33, 27, 22, 0.94), rgba(20, 16, 13, 0.95)),
+    radial-gradient(circle at right, rgba(200, 161, 90, 0.12), transparent 35%);
+}
+
+.eyebrow,
+.cardLabel {
+  color: #c8a15a;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.header h1,
+.panel h2 {
+  font-family:
+    "Iowan Old Style", "Palatino Linotype", "Book Antiqua", "URW Palladio L",
+    Georgia, serif;
+  letter-spacing: -0.03em;
+}
+
+.header h1 {
+  max-width: 12ch;
+  margin-top: 0.85rem;
+  font-size: clamp(2.9rem, 6vw, 5rem);
+  line-height: 0.94;
+}
+
+.lead {
+  max-width: 60ch;
+  margin-top: 1rem;
+  line-height: 1.8;
+  color: rgba(244, 239, 232, 0.76);
+}
+
+.headerActions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.badge,
+.panelMeta,
+.categoryChip,
+.userRole,
+.statusChip,
+.priorityChip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  padding: 0.45rem 0.9rem;
+  font-size: 0.84rem;
+}
+
+.badge,
+.panelMeta,
+.userRole {
+  color: #f4efe8;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.linkButton,
+.actionRow button,
+.categoryAction button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 3rem;
+  padding: 0 1.15rem;
+  border-radius: 999px;
+  border: 0;
+  cursor: pointer;
+  font-weight: 600;
+  transition:
+    transform 0.28s ease,
+    background 0.28s ease,
+    border-color 0.28s ease;
+}
+
+.linkButton,
+.actionRow button,
+.categoryAction button {
+  background: linear-gradient(135deg, #c8a15a, #a9723c);
+  color: #100d0b;
+}
+
+.secondaryAction {
+  background: rgba(255, 255, 255, 0.08) !important;
+  color: #f4efe8 !important;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.linkButton:hover,
+.actionRow button:hover,
+.categoryAction button:hover {
+  transform: translateY(-2px);
+}
+
+.statsGrid,
+.mainGrid,
+.lowerGrid {
+  display: grid;
+  gap: 1.2rem;
+}
+
+.statsGrid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.statCard {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  padding: 1.35rem;
+  border-radius: 1.6rem;
+  background: rgba(22, 18, 14, 0.82);
+}
+
+.statCard strong {
+  font-size: clamp(2rem, 5vw, 2.8rem);
+  line-height: 1;
+}
+
+.statCard span {
+  color: rgba(244, 239, 232, 0.72);
+  line-height: 1.65;
+}
+
+.mainGrid {
+  grid-template-columns: 1.15fr 0.95fr;
+}
+
+.lowerGrid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.panel {
+  padding: 1.4rem;
+  border-radius: 1.9rem;
+  background:
+    linear-gradient(180deg, rgba(25, 20, 16, 0.92), rgba(18, 15, 12, 0.95)),
+    radial-gradient(circle at top, rgba(200, 161, 90, 0.08), transparent 35%);
+}
+
+.panelHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.panelHeader h2 {
+  margin-top: 0.55rem;
+  font-size: clamp(1.6rem, 3vw, 2.2rem);
+  line-height: 1.02;
+}
+
+.list {
+  display: grid;
+  gap: 0.95rem;
+}
+
+.listCard,
+.simpleCard {
+  padding: 1.05rem;
+  border-radius: 1.35rem;
+  background: rgba(255, 250, 241, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.listTop {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.65rem;
+}
+
+.listTop h3 {
+  font-size: 1.05rem;
+}
+
+.detailRow {
+  color: rgba(244, 239, 232, 0.78);
+  line-height: 1.7;
+}
+
+.detailRow strong {
+  color: #f4efe8;
+}
+
+.statusChip {
+  background: rgba(200, 161, 90, 0.14);
+  color: #f5d394;
+  border: 1px solid rgba(200, 161, 90, 0.2);
+}
+
+.priorityChip {
+  color: #0b0b0b;
+  font-weight: 700;
+}
+
+.high {
+  background: #d97d5d;
+}
+
+.medium {
+  background: #d1aa60;
+}
+
+.low {
+  background: #8ba172;
+}
+
+.actionRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.8rem;
+  margin-top: 1rem;
+}
+
+.categoryWrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.categoryChip {
+  background: rgba(255, 255, 255, 0.08);
+  color: #f4efe8;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.categoryAction {
+  margin-top: 1rem;
+}
+
+.notesPanel {
+  background:
+    linear-gradient(180deg, rgba(30, 20, 13, 0.95), rgba(18, 13, 10, 0.96)),
+    radial-gradient(circle at right, rgba(200, 161, 90, 0.12), transparent 38%);
+}
+
+.noteList {
+  display: grid;
+  gap: 0.8rem;
+  padding-left: 1.15rem;
+}
+
+.noteList li {
+  color: rgba(244, 239, 232, 0.8);
+  line-height: 1.75;
+}
+
+@media (max-width: 1120px) {
+  .statsGrid,
+  .mainGrid,
+  .lowerGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  .page {
+    padding: 1rem;
+  }
+
+  .header,
+  .panel,
+  .statCard {
+    border-radius: 1.5rem;
+  }
+
+  .header {
+    flex-direction: column;
+    padding: 1.25rem;
+  }
+
+  .headerActions {
+    align-items: flex-start;
+  }
+
+  .panel,
+  .statCard {
+    padding: 1.1rem;
+  }
+
+  .listTop,
+  .panelHeader {
+    flex-direction: column;
+  }
+
+  .linkButton,
+  .actionRow button,
+  .categoryAction button {
+    width: 100%;
+  }
+}

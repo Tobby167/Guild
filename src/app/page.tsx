@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useState } from "react";
 import styles from "./page.module.css";
 
@@ -130,9 +129,6 @@ export default function Home() {
               <a className={styles.secondaryCta} href="#roadmap">
                 See the launch path
               </a>
-              <Link className={styles.tertiaryCta} href="/admin">
-                Open admin preview
-              </Link>
             </div>
 
             <div className={styles.statRow}>

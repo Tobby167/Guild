@@ -74,6 +74,8 @@ const STORAGE_KEYS = {
 
 const SESSION_EVENT = "guild-session-change";
 const volatileStorage = new Map<string, string>();
+let currentSessionRawCache: string | null | undefined;
+let currentSessionValueCache: GuildDemoSession | null = null;
 
 function isBrowser() {
   return typeof window !== "undefined";
@@ -100,6 +102,18 @@ function readStorage<T>(key: string, fallback: T): T {
     return JSON.parse(raw) as T;
   } catch {
     return fallback;
+  }
+}
+
+function readStorageRaw(key: string) {
+  if (!isBrowser()) {
+    return null;
+  }
+
+  try {
+    return window.localStorage.getItem(key);
+  } catch {
+    return volatileStorage.get(key) ?? null;
   }
 }
 
@@ -145,11 +159,32 @@ export function saveDemoProfile(profile: GuildDemoProfile) {
 }
 
 export function getCurrentSession() {
-  return readStorage<GuildDemoSession | null>(STORAGE_KEYS.session, null);
+  const raw = readStorageRaw(STORAGE_KEYS.session);
+
+  if (raw === currentSessionRawCache) {
+    return currentSessionValueCache;
+  }
+
+  currentSessionRawCache = raw;
+
+  if (!raw) {
+    currentSessionValueCache = null;
+    return currentSessionValueCache;
+  }
+
+  try {
+    currentSessionValueCache = JSON.parse(raw) as GuildDemoSession;
+    return currentSessionValueCache;
+  } catch {
+    currentSessionValueCache = null;
+    return currentSessionValueCache;
+  }
 }
 
 export function saveCurrentSession(session: GuildDemoSession) {
   writeStorage(STORAGE_KEYS.session, session);
+  currentSessionRawCache = JSON.stringify(session);
+  currentSessionValueCache = session;
 
   if (isBrowser()) {
     window.dispatchEvent(new Event(SESSION_EVENT));
@@ -164,6 +199,8 @@ export function clearCurrentSession() {
   }
 
   volatileStorage.delete(STORAGE_KEYS.session);
+  currentSessionRawCache = null;
+  currentSessionValueCache = null;
 
   try {
     window.localStorage.removeItem(STORAGE_KEYS.session);

@@ -1,0 +1,270 @@
+.page {
+  min-height: 100vh;
+  position: relative;
+  padding: 1.5rem;
+  background:
+    radial-gradient(circle at top, rgba(200, 161, 90, 0.18), transparent 36%),
+    linear-gradient(180deg, #f7f1e8 0%, #efe5d8 45%, #f6f0e7 100%);
+}
+
+.backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at right, rgba(112, 141, 120, 0.14), transparent 24%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.28), transparent 40%);
+}
+
+.shell {
+  position: relative;
+  z-index: 1;
+  width: min(1180px, 100%);
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1.4rem;
+}
+
+.topbar,
+.hero,
+.profileCard,
+.workCard {
+  border: 1px solid rgba(78, 60, 39, 0.1);
+  box-shadow: 0 24px 70px rgba(22, 18, 14, 0.12);
+  backdrop-filter: blur(20px);
+}
+
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.2rem;
+  border-radius: 1.5rem;
+  background: rgba(255, 249, 241, 0.78);
+  color: rgba(29, 23, 16, 0.75);
+}
+
+.hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(320px, 0.9fr);
+  gap: 1.3rem;
+  padding: 1.4rem;
+  border-radius: 2rem;
+  background:
+    linear-gradient(180deg, rgba(255, 251, 245, 0.92), rgba(245, 236, 224, 0.94)),
+    repeating-linear-gradient(120deg, transparent, transparent 22px, rgba(200, 161, 90, 0.04) 22px, rgba(200, 161, 90, 0.04) 44px);
+}
+
+.eyebrow,
+.cardLabel,
+.workCategory {
+  color: #a77742;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.heroCopy h1,
+.sectionHeading h2,
+.workCard h3 {
+  font-family:
+    "Iowan Old Style", "Palatino Linotype", "Book Antiqua", "URW Palladio L",
+    Georgia, serif;
+  letter-spacing: -0.03em;
+}
+
+.heroCopy h1 {
+  margin-top: 0.8rem;
+  font-size: clamp(3rem, 6vw, 5rem);
+  line-height: 0.92;
+}
+
+.bio,
+.highlightNote,
+.workBody p {
+  color: rgba(29, 23, 16, 0.75);
+  line-height: 1.75;
+}
+
+.highlights,
+.specialties,
+.portfolioGrid {
+  display: grid;
+  gap: 1rem;
+}
+
+.highlights {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: 1.2rem;
+}
+
+.highlights article,
+.snapshotRow {
+  padding: 1rem;
+  border-radius: 1.2rem;
+  background: rgba(29, 23, 16, 0.04);
+  border: 1px solid rgba(78, 60, 39, 0.08);
+}
+
+.highlights span,
+.snapshotRow span {
+  display: block;
+  color: rgba(29, 23, 16, 0.62);
+  font-size: 0.85rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.highlights strong,
+.snapshotRow strong {
+  display: block;
+  margin-top: 0.45rem;
+}
+
+.profileCard {
+  display: flex;
+  flex-direction: column;
+  gap: 0.95rem;
+  padding: 1.3rem;
+  border-radius: 1.6rem;
+  background: rgba(255, 250, 242, 0.84);
+}
+
+.actionButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 3.1rem;
+  border-radius: 999px;
+  background: linear-gradient(135deg, var(--obsidian), #2c2219);
+  color: var(--canvas);
+  font-weight: 700;
+  transition: transform 0.28s ease;
+}
+
+.actionButton:hover {
+  transform: translateY(-2px);
+}
+
+.specialtySection,
+.portfolioSection {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.specialties {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.specialties span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 3rem;
+  padding: 0 1rem;
+  border-radius: 1.2rem;
+  background: rgba(255, 250, 242, 0.84);
+  border: 1px solid rgba(78, 60, 39, 0.08);
+  box-shadow: 0 18px 45px rgba(20, 16, 12, 0.08);
+  text-align: center;
+  font-weight: 600;
+}
+
+.portfolioGrid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.workCard {
+  overflow: hidden;
+  border-radius: 1.7rem;
+  background: rgba(255, 250, 242, 0.88);
+}
+
+.workVisual {
+  --tone-a: #11131a;
+  --tone-b: #c8a15a;
+  --tone-c: #f5ead9;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 16rem;
+  padding: 1rem;
+  background:
+    radial-gradient(circle at top right, color-mix(in srgb, var(--tone-b) 35%, transparent), transparent 26%),
+    linear-gradient(135deg, var(--tone-a), var(--tone-b) 56%, var(--tone-c));
+  color: #fff7ed;
+}
+
+.workVisual span {
+  align-self: flex-start;
+  padding: 0.45rem 0.75rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  font-size: 0.8rem;
+}
+
+.workVisual strong {
+  max-width: 16rem;
+  line-height: 1.5;
+}
+
+.workBody {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1rem;
+}
+
+.workBody h3 {
+  font-size: 1.7rem;
+  line-height: 1;
+}
+
+.workMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.8rem 1rem;
+  color: rgba(29, 23, 16, 0.7);
+  font-weight: 600;
+}
+
+@media (max-width: 1040px) {
+  .hero,
+  .specialties,
+  .portfolioGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  .page {
+    padding: 1rem;
+  }
+
+  .topbar,
+  .hero,
+  .profileCard,
+  .workCard {
+    border-radius: 1.4rem;
+  }
+
+  .topbar {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .hero,
+  .profileCard,
+  .workBody {
+    padding: 1rem;
+  }
+
+  .highlights {
+    grid-template-columns: 1fr;
+  }
+}

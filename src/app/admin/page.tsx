@@ -1,33 +1,17 @@
+"use client";
+
+import dynamic from "next/dynamic";
 import Link from "next/link";
+import { useMemo, useState } from "react";
+import { creators, guildCategories } from "@/lib/guild-data";
+import {
+  getDemoProfiles,
+  getDemoRequests,
+  updateProfileVerification,
+  type GuildDemoProfile,
+  type GuildDemoRequest,
+} from "@/lib/guild-demo-state";
 import styles from "./page.module.css";
-
-const stats = [
-  { label: "Pending Verification", value: "14", note: "5 need review today" },
-  { label: "Open Reports", value: "07", note: "2 marked high priority" },
-  { label: "Active Creators", value: "128", note: "23 newly onboarded" },
-  { label: "Commission Requests", value: "41", note: "12 waiting for quote" },
-];
-
-const verificationQueue = [
-  {
-    name: "Ada Stitch Studio",
-    category: "Embroidery",
-    evidence: "Process photos, Instagram link, two client screenshots",
-    status: "Needs review",
-  },
-  {
-    name: "Mira Bead House",
-    category: "Handmade Accessories",
-    evidence: "Work-in-progress video and product gallery",
-    status: "Ready to approve",
-  },
-  {
-    name: "Kemi Crochet Works",
-    category: "Crochet",
-    evidence: "Three finished pieces and yarn process shots",
-    status: "Waiting on identity proof",
-  },
-];
 
 const reports = [
   {
@@ -50,44 +34,63 @@ const reports = [
   },
 ];
 
-const recentUsers = [
-  {
-    name: "Nora Loom",
-    role: "Creator",
-    status: "Profile complete",
-    note: "Posted 4 works in first day",
-  },
-  {
-    name: "David O.",
-    role: "Buyer",
-    status: "Browsing only",
-    note: "Saved 9 posts, no request yet",
-  },
-  {
-    name: "Simi Threads",
-    role: "Creator",
-    status: "Verification pending",
-    note: "Needs turnaround time added",
-  },
-];
-
-const categories = [
-  "Crochet",
-  "Knitting",
-  "Sewing",
-  "Embroidery",
-  "Beadwork",
-  "Handmade Accessories",
-  "Tie-Dye",
-];
-
 const notes = [
   "Keep verification manual in v1 until the trust rules are stable.",
   "Do not let copied-work reports auto-ban creators without review.",
   "Track which categories receive the most commission requests before expanding v1.",
 ];
 
-export default function AdminPage() {
+function AdminPageImpl() {
+  const [profiles, setProfiles] = useState<GuildDemoProfile[]>(() => getDemoProfiles());
+  const [requests, setRequests] = useState<GuildDemoRequest[]>(() => getDemoRequests());
+
+  const refresh = () => {
+    setProfiles(getDemoProfiles());
+    setRequests(getDemoRequests());
+  };
+
+  const creatorProfiles = useMemo(
+    () => profiles.filter((profile) => profile.role === "creator" || profile.role === "both"),
+    [profiles],
+  );
+  const pendingProfiles = useMemo(
+    () => creatorProfiles.filter((profile) => profile.verificationStatus === "pending"),
+    [creatorProfiles],
+  );
+  const openRequests = useMemo(
+    () => requests.filter((request) => request.status !== "archived"),
+    [requests],
+  );
+
+  const stats = [
+    {
+      label: "Pending Verification",
+      value: String(pendingProfiles.length).padStart(2, "0"),
+      note:
+        pendingProfiles.length > 0
+          ? "Approve local creator signups"
+          : "No pending creator signups",
+    },
+    {
+      label: "Open Requests",
+      value: String(openRequests.length).padStart(2, "0"),
+      note:
+        openRequests.length > 0
+          ? "Requests waiting for creator action"
+          : "No local request activity yet",
+    },
+    {
+      label: "Active Creators",
+      value: String(creators.length + creatorProfiles.length),
+      note: `${creatorProfiles.length} local creator account(s) in this browser`,
+    },
+    {
+      label: "Commission Requests",
+      value: String(requests.length).padStart(2, "0"),
+      note: "Saved through the local request flow",
+    },
+  ];
+
   return (
     <main className={styles.page}>
       <div className={styles.backdrop} aria-hidden="true" />
@@ -98,9 +101,9 @@ export default function AdminPage() {
             <p className={styles.eyebrow}>Guild Internal Dashboard</p>
             <h1>Admin control for trust, safety, and platform flow.</h1>
             <p className={styles.lead}>
-              This is the founder-facing control room for Guild. In the real
-              product, this area should be protected by admin authentication and
-              role-based access.
+              This founder-facing control room now reads the local Guild demo
+              state. Creator signups can be manually approved here, and saved
+              requests show up as real activity instead of static filler.
             </p>
           </div>
 
@@ -132,28 +135,52 @@ export default function AdminPage() {
               <span className={styles.panelMeta}>Manual-first review</span>
             </div>
 
-            <div className={styles.list}>
-              {verificationQueue.map((item) => (
-                <div key={item.name} className={styles.listCard}>
-                  <div className={styles.listTop}>
-                    <h3>{item.name}</h3>
-                    <span className={styles.statusChip}>{item.status}</span>
+            {pendingProfiles.length === 0 ? (
+              <div className={styles.listCard}>
+                <p className={styles.detailRow}>
+                  No pending creator signups in this browser yet. Use the join
+                  flow to create one, then approve it here.
+                </p>
+              </div>
+            ) : (
+              <div className={styles.list}>
+                {pendingProfiles.map((item) => (
+                  <div key={item.id} className={styles.listCard}>
+                    <div className={styles.listTop}>
+                      <h3>{item.name}</h3>
+                      <span className={styles.statusChip}>Needs review</span>
+                    </div>
+                    <p className={styles.detailRow}>
+                      <strong>Category:</strong> {item.category ?? "Not provided"}
+                    </p>
+                    <p className={styles.detailRow}>
+                      <strong>Email:</strong> {item.email}
+                    </p>
+                    <p className={styles.detailRow}>
+                      <strong>Bio:</strong> {item.bio ?? "No bio added yet"}
+                    </p>
+                    <div className={styles.actionRow}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          updateProfileVerification(item.id, "verified");
+                          refresh();
+                        }}
+                      >
+                        Approve
+                      </button>
+                      <button
+                        type="button"
+                        className={styles.secondaryAction}
+                        onClick={refresh}
+                      >
+                        Keep pending
+                      </button>
+                    </div>
                   </div>
-                  <p className={styles.detailRow}>
-                    <strong>Category:</strong> {item.category}
-                  </p>
-                  <p className={styles.detailRow}>
-                    <strong>Evidence:</strong> {item.evidence}
-                  </p>
-                  <div className={styles.actionRow}>
-                    <button type="button">Approve</button>
-                    <button type="button" className={styles.secondaryAction}>
-                      Request more proof
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </article>
 
           <article className={styles.panel}>
@@ -198,25 +225,39 @@ export default function AdminPage() {
           <article className={styles.panel}>
             <div className={styles.panelHeader}>
               <div>
-                <p className={styles.cardLabel}>Recent Users</p>
-                <h2>Watch onboarding quality.</h2>
+                <p className={styles.cardLabel}>Request Queue</p>
+                <h2>Watch live local request activity.</h2>
               </div>
             </div>
 
-            <div className={styles.list}>
-              {recentUsers.map((user) => (
-                <div key={user.name} className={styles.simpleCard}>
-                  <div className={styles.listTop}>
-                    <h3>{user.name}</h3>
-                    <span className={styles.userRole}>{user.role}</span>
+            {requests.length === 0 ? (
+              <div className={styles.simpleCard}>
+                <p className={styles.detailRow}>
+                  No local requests yet. Submit one from a work page or the
+                  request form to populate this queue.
+                </p>
+              </div>
+            ) : (
+              <div className={styles.list}>
+                {requests.slice(0, 4).map((request) => (
+                  <div key={request.id} className={styles.simpleCard}>
+                    <div className={styles.listTop}>
+                      <h3>{request.projectTitle}</h3>
+                      <span className={styles.userRole}>{request.status}</span>
+                    </div>
+                    <p className={styles.detailRow}>
+                      <strong>Creator:</strong> {request.creatorName}
+                    </p>
+                    <p className={styles.detailRow}>
+                      <strong>Buyer:</strong> {request.buyerName}
+                    </p>
+                    <p className={styles.detailRow}>
+                      <strong>Budget:</strong> {request.budgetRange}
+                    </p>
                   </div>
-                  <p className={styles.detailRow}>
-                    <strong>Status:</strong> {user.status}
-                  </p>
-                  <p className={styles.detailRow}>{user.note}</p>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </article>
 
           <article className={styles.panel}>
@@ -228,7 +269,7 @@ export default function AdminPage() {
             </div>
 
             <div className={styles.categoryWrap}>
-              {categories.map((category) => (
+              {guildCategories.map((category) => (
                 <span key={category} className={styles.categoryChip}>
                   {category}
                 </span>
@@ -259,3 +300,5 @@ export default function AdminPage() {
     </main>
   );
 }
+
+export default dynamic(() => Promise.resolve(AdminPageImpl), { ssr: false });

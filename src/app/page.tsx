@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import styles from "./page.module.css";
 
@@ -87,6 +88,12 @@ const launchPrinciples = [
   "Launch with manual trust systems before promising advanced AI moderation.",
 ];
 
+const heroLinks = [
+  { label: "Vision", href: "#vision" },
+  { label: "Launch Scope", href: "#launch-scope" },
+  { label: "Roadmap", href: "#roadmap" },
+];
+
 export default function Home() {
   const [activeChamber, setActiveChamber] = useState<ChamberKey>("studio");
   const chamber = chambers[activeChamber];
@@ -96,21 +103,16 @@ export default function Home() {
       <div className={styles.backdrop} aria-hidden="true" />
 
       <section className={styles.heroShell}>
-        <header className={styles.topbar}>
-          <div className={styles.brandLockup}>
-            <span className={styles.brandMark}>GU</span>
-            <div>
-              <p className={styles.brandName}>Guild</p>
-              <p className={styles.brandTag}>For fiber and textile creators</p>
-            </div>
+        <div className={styles.heroGuide}>
+          <p className={styles.navGroupLabel}>On this page</p>
+          <div className={styles.navPills}>
+            {heroLinks.map((item) => (
+              <a key={item.href} href={item.href}>
+                {item.label}
+              </a>
+            ))}
           </div>
-
-          <nav className={styles.jumpLinks} aria-label="Section navigation">
-            <a href="#vision">Vision</a>
-            <a href="#launch-scope">Launch Scope</a>
-            <a href="#roadmap">Roadmap</a>
-          </nav>
-        </header>
+        </div>
 
         <div className={styles.hero}>
           <div className={styles.heroCopy}>
@@ -122,13 +124,30 @@ export default function Home() {
               textile creators and the buyers who want to hire them well.
             </p>
 
+            <div className={styles.heroSplit}>
+              <article className={styles.heroSplitCard}>
+                <p className={styles.heroSplitLabel}>Start in the app</p>
+                <p>
+                  Join Guild, set up your studio, open your inbox, or browse the
+                  discovery feed.
+                </p>
+              </article>
+              <article className={styles.heroSplitCard}>
+                <p className={styles.heroSplitLabel}>Read the direction</p>
+                <p>
+                  Use the vision, launch scope, and roadmap sections to keep the
+                  product focus clear.
+                </p>
+              </article>
+            </div>
+
             <div className={styles.heroActions}>
-              <a className={styles.primaryCta} href="#vision">
-                Explore the creator side
-              </a>
-              <a className={styles.secondaryCta} href="#roadmap">
-                See the launch path
-              </a>
+              <Link className={styles.primaryCta} href="/join">
+                Start with join
+              </Link>
+              <Link className={styles.secondaryCta} href="/feed">
+                Explore the feed
+              </Link>
             </div>
 
             <div className={styles.statRow}>

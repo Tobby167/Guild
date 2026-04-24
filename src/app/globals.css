@@ -63,3 +63,11 @@ textarea,
 select {
   font: inherit;
 }
+
+/* Stability-first fallback for hosted browsers that choke on glass blur effects. */
+*,
+*::before,
+*::after {
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}

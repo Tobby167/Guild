@@ -1,19 +1,69 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import {
   creators,
   guildCategories,
   type GuildCategory,
   works,
 } from "@/lib/guild-data";
+import {
+  getDemoProfiles,
+  getDemoWorks,
+  subscribeToDemoWorks,
+  type GuildDemoWork,
+} from "@/lib/guild-demo-state";
 import styles from "./page.module.css";
 
 type FeedFilter = "All" | GuildCategory;
+type FeedCardStyle = CSSProperties & {
+  "--tone-a": string;
+  "--tone-b": string;
+  "--tone-c": string;
+  "--image-height": string;
+};
+type FeedItem =
+  | {
+      source: "seed";
+      key: string;
+      href: string;
+      creatorSlug: string;
+      creatorHref: string;
+      creatorName: string;
+      creatorTrust: string;
+      category: GuildCategory;
+      format: string;
+      commissionReady: boolean;
+      title: string;
+      priceRange: string;
+      leadTime: string;
+      imageLabel: string;
+      palette: [string, string, string];
+      imageDataUrl?: undefined;
+    }
+  | {
+      source: "local";
+      key: string;
+      href: string;
+      creatorSlug: string;
+      creatorHref: string;
+      creatorName: string;
+      creatorTrust: string;
+      category: GuildCategory;
+      format: string;
+      commissionReady: boolean;
+      title: string;
+      priceRange: string;
+      leadTime: string;
+      imageLabel: string;
+      palette: [string, string, string];
+      imageDataUrl?: string;
+    };
 
 export default function FeedPage() {
   const [selectedCategories, setSelectedCategories] = useState<GuildCategory[]>([]);
+  const [localWorks, setLocalWorks] = useState<GuildDemoWork[]>(() => getDemoWorks());
   const categoryFilters: FeedFilter[] = ["All", ...guildCategories];
   const imageHeights = [
     "25rem",
@@ -26,6 +76,8 @@ export default function FeedPage() {
     "35rem",
   ];
   const allActive = selectedCategories.length === 0;
+
+  useEffect(() => subscribeToDemoWorks(() => setLocalWorks(getDemoWorks())), []);
 
   const toggleCategory = (category: FeedFilter) => {
     if (category === "All") {
@@ -42,12 +94,62 @@ export default function FeedPage() {
     });
   };
 
+  const feedItems = useMemo<FeedItem[]>(() => {
+    const localProfiles = getDemoProfiles();
+    const localFeedItems: FeedItem[] = localWorks.map((work) => {
+      const profile = localProfiles.find((item) => item.slug === work.creatorSlug);
+
+      return {
+        source: "local",
+        key: `local-${work.id}`,
+        href: "/studio",
+        creatorSlug: work.creatorSlug,
+        creatorHref: "/studio",
+        creatorName: profile?.name ?? work.creatorName,
+        creatorTrust: profile?.verified ? "Verified" : "In Review",
+        category: work.category,
+        format: work.format,
+        commissionReady: work.commissionReady,
+        title: work.title,
+        priceRange: work.priceRange,
+        leadTime: work.leadTime,
+        imageLabel: work.imageLabel,
+        palette: ["#1f1711", "#8d6c4f", "#f3e7d6"],
+        imageDataUrl: work.imageDataUrl,
+      };
+    });
+
+    const seedFeedItems: FeedItem[] = works.map((work) => {
+      const creator = creators.find((item) => item.slug === work.creatorSlug);
+
+      return {
+        source: "seed",
+        key: `seed-${work.slug}`,
+        href: `/work/${work.slug}`,
+        creatorSlug: work.creatorSlug,
+        creatorHref: creator ? `/creators/${creator.slug}` : "/feed",
+        creatorName: creator?.name ?? "Guild Creator",
+        creatorTrust: creator?.verified ? "Verified" : "In Review",
+        category: work.category,
+        format: work.format,
+        commissionReady: work.commissionReady,
+        title: work.title,
+        priceRange: work.priceRange,
+        leadTime: work.leadTime,
+        imageLabel: work.imageLabel,
+        palette: work.palette,
+      };
+    });
+
+    return [...localFeedItems, ...seedFeedItems];
+  }, [localWorks]);
+
   const filteredWorks = useMemo(
     () =>
       allActive
-        ? works
-        : works.filter((work) => selectedCategories.includes(work.category)),
-    [allActive, selectedCategories],
+        ? feedItems
+        : feedItems.filter((work) => selectedCategories.includes(work.category)),
+    [allActive, feedItems, selectedCategories],
   );
   const visibleCreatorCount = useMemo(
     () => new Set(filteredWorks.map((work) => work.creatorSlug)).size,
@@ -57,6 +159,26 @@ export default function FeedPage() {
     () => filteredWorks.filter((work) => work.commissionReady).length,
     [filteredWorks],
   );
+  const buildCardStyle = (work: FeedItem, imageHeight: string): FeedCardStyle => {
+    if (work.imageDataUrl) {
+      return {
+        "--tone-a": work.palette[0],
+        "--tone-b": work.palette[1],
+        "--tone-c": work.palette[2],
+        "--image-height": imageHeight,
+        backgroundImage: `linear-gradient(rgba(19, 14, 10, 0.28), rgba(19, 14, 10, 0.18)), url(${work.imageDataUrl})`,
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+      };
+    }
+
+    return {
+      "--tone-a": work.palette[0],
+      "--tone-b": work.palette[1],
+      "--tone-c": work.palette[2],
+      "--image-height": imageHeight,
+    };
+  };
 
   return (
     <main className={styles.page}>
@@ -98,7 +220,8 @@ export default function FeedPage() {
 
             <p className={styles.introNote}>
               Browse the box, open a piece, and follow the work into the creator
-              profile when you want something made for you.
+              profile when you want something made for you. Your local studio
+              uploads will also appear here first.
             </p>
           </div>
         </section>
@@ -134,24 +257,21 @@ export default function FeedPage() {
 
         <section className={styles.feedBoard}>
           {filteredWorks.map((work, index) => {
-            const creator = creators.find((item) => item.slug === work.creatorSlug);
-
             return (
-              <article key={work.slug} className={styles.card}>
+              <article key={work.key} className={styles.card}>
                 <Link
-                  href={`/work/${work.slug}`}
+                  href={work.href}
                   className={styles.imageCard}
-                  style={
-                    {
-                      "--tone-a": work.palette[0],
-                      "--tone-b": work.palette[1],
-                      "--tone-c": work.palette[2],
-                      "--image-height": imageHeights[index % imageHeights.length],
-                    } as CSSProperties
-                  }
+                  style={buildCardStyle(
+                    work,
+                    imageHeights[index % imageHeights.length],
+                  )}
                 >
                   <div className={styles.imageOverlay}>
                     <span className={styles.imageBadge}>{work.format}</span>
+                    {work.source === "local" ? (
+                      <span className={styles.localBadge}>Studio Upload</span>
+                    ) : null}
                     {work.commissionReady ? (
                       <span className={styles.readyBadge}>Commission Ready</span>
                     ) : null}
@@ -164,20 +284,16 @@ export default function FeedPage() {
 
                 <div className={styles.cardBody}>
                   <h2>
-                    <Link href={`/work/${work.slug}`}>{work.title}</Link>
+                    <Link href={work.href}>{work.title}</Link>
                   </h2>
 
-                  {creator ? (
-                    <div className={styles.creatorRow}>
-                      <div className={styles.creatorBlock}>
-                        <p className={styles.creatorLabel}>{work.category}</p>
-                        <Link href={`/creators/${creator.slug}`}>{creator.name}</Link>
-                      </div>
-                      <span className={styles.creatorTrust}>
-                        {creator.verified ? "Verified" : "In Review"}
-                      </span>
+                  <div className={styles.creatorRow}>
+                    <div className={styles.creatorBlock}>
+                      <p className={styles.creatorLabel}>{work.category}</p>
+                      <Link href={work.creatorHref}>{work.creatorName}</Link>
                     </div>
-                  ) : null}
+                    <span className={styles.creatorTrust}>{work.creatorTrust}</span>
+                  </div>
 
                   <div className={styles.metaRow}>
                     <span>{work.priceRange}</span>

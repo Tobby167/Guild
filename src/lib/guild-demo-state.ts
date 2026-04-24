@@ -73,6 +73,7 @@ const STORAGE_KEYS = {
 } as const;
 
 const SESSION_EVENT = "guild-session-change";
+const WORKS_EVENT = "guild-works-change";
 const volatileStorage = new Map<string, string>();
 let currentSessionRawCache: string | null | undefined;
 let currentSessionValueCache: GuildDemoSession | null = null;
@@ -216,11 +217,30 @@ export function saveDemoWork(work: GuildDemoWork) {
   const works = getDemoWorks();
   const nextWorks = [work, ...works.filter((item) => item.id !== work.id)];
   writeStorage(STORAGE_KEYS.uploads, nextWorks);
+
+  if (isBrowser()) {
+    window.dispatchEvent(new Event(WORKS_EVENT));
+  }
+
   return work;
 }
 
 export function getWorksForCreator(creatorSlug: string) {
   return getDemoWorks().filter((work) => work.creatorSlug === creatorSlug);
+}
+
+export function subscribeToDemoWorks(callback: () => void) {
+  if (!isBrowser()) {
+    return () => undefined;
+  }
+
+  window.addEventListener("storage", callback);
+  window.addEventListener(WORKS_EVENT, callback);
+
+  return () => {
+    window.removeEventListener("storage", callback);
+    window.removeEventListener(WORKS_EVENT, callback);
+  };
 }
 
 export function getDemoRequests() {

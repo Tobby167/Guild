@@ -349,6 +349,7 @@
 }
 
 .readyBadge,
+.localBadge,
 .creatorTrust {
   display: inline-flex;
   align-items: center;
@@ -363,6 +364,12 @@
   background: rgba(255, 255, 255, 0.16);
   border: 1px solid rgba(255, 255, 255, 0.18);
   color: #fff7ec;
+}
+
+.localBadge {
+  background: rgba(33, 23, 17, 0.52);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: #fff1e4;
 }
 
 .creatorRow {

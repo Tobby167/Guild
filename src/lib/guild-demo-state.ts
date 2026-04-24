@@ -73,6 +73,7 @@ const STORAGE_KEYS = {
 } as const;
 
 const SESSION_EVENT = "guild-session-change";
+const volatileStorage = new Map<string, string>();
 
 function isBrowser() {
   return typeof window !== "undefined";
@@ -83,7 +84,13 @@ function readStorage<T>(key: string, fallback: T): T {
     return fallback;
   }
 
-  const raw = window.localStorage.getItem(key);
+  let raw: string | null = null;
+
+  try {
+    raw = window.localStorage.getItem(key);
+  } catch {
+    raw = volatileStorage.get(key) ?? null;
+  }
 
   if (!raw) {
     return fallback;
@@ -101,7 +108,12 @@ function writeStorage<T>(key: string, value: T) {
     return;
   }
 
-  window.localStorage.setItem(key, JSON.stringify(value));
+  const serialized = JSON.stringify(value);
+  volatileStorage.set(key, serialized);
+
+  try {
+    window.localStorage.setItem(key, serialized);
+  } catch {}
 }
 
 export function makeGuildId(prefix: string) {
@@ -151,7 +163,11 @@ export function clearCurrentSession() {
     return;
   }
 
-  window.localStorage.removeItem(STORAGE_KEYS.session);
+  volatileStorage.delete(STORAGE_KEYS.session);
+
+  try {
+    window.localStorage.removeItem(STORAGE_KEYS.session);
+  } catch {}
   window.dispatchEvent(new Event(SESSION_EVENT));
 }
 

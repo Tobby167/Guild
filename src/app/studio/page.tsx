@@ -3,11 +3,13 @@
 import dynamic from "next/dynamic";
 import Image from "next/image";
 import Link from "next/link";
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
+  deleteDemoWork,
   getCurrentSession,
   getDemoProfiles,
   getWorksForCreator,
+  subscribeToDemoWorks,
 } from "@/lib/guild-demo-state";
 import styles from "./page.module.css";
 
@@ -16,10 +18,19 @@ function StudioPageImpl() {
   const profile = session?.creatorSlug
     ? getDemoProfiles().find((item) => item.id === session.profileId) ?? null
     : null;
-  const uploads = useMemo(
-    () => (session?.creatorSlug ? getWorksForCreator(session.creatorSlug) : []),
-    [session?.creatorSlug],
+  const [uploads, setUploads] = useState(() =>
+    session?.creatorSlug ? getWorksForCreator(session.creatorSlug) : [],
   );
+
+  useEffect(() => {
+    if (!session?.creatorSlug) {
+      return undefined;
+    }
+
+    return subscribeToDemoWorks(() => {
+      setUploads(getWorksForCreator(session.creatorSlug!));
+    });
+  }, [session?.creatorSlug]);
 
   const commissionReadyCount = useMemo(
     () => uploads.filter((work) => work.commissionReady).length,
@@ -136,6 +147,19 @@ function StudioPageImpl() {
                         <div className={styles.metaRow}>
                           <span>{work.priceRange}</span>
                           <span>{work.leadTime}</span>
+                        </div>
+                        <div className={styles.uploadActions}>
+                          <button
+                            type="button"
+                            className={styles.deleteButton}
+                            onClick={() => {
+                              if (window.confirm(`Delete "${work.title}" from Studio?`)) {
+                                deleteDemoWork(work.id);
+                              }
+                            }}
+                          >
+                            Delete post
+                          </button>
                         </div>
                       </div>
                     </article>

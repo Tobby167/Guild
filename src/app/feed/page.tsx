@@ -9,6 +9,8 @@ import {
   works,
 } from "@/lib/guild-data";
 import {
+  deleteDemoWork,
+  getCurrentSession,
   getDemoProfiles,
   getDemoWorks,
   subscribeToDemoWorks,
@@ -40,10 +42,12 @@ type FeedItem =
       leadTime: string;
       imageLabel: string;
       palette: [string, string, string];
+      id?: undefined;
       imageDataUrl?: undefined;
     }
   | {
       source: "local";
+      id: string;
       key: string;
       href: string;
       creatorSlug: string;
@@ -64,6 +68,7 @@ type FeedItem =
 export default function FeedPage() {
   const [selectedCategories, setSelectedCategories] = useState<GuildCategory[]>([]);
   const [localWorks, setLocalWorks] = useState<GuildDemoWork[]>(() => getDemoWorks());
+  const session = getCurrentSession();
   const categoryFilters: FeedFilter[] = ["All", ...guildCategories];
   const imageHeights = [
     "25rem",
@@ -101,6 +106,7 @@ export default function FeedPage() {
 
       return {
         source: "local",
+        id: work.id,
         key: `local-${work.id}`,
         href: "/studio",
         creatorSlug: work.creatorSlug,
@@ -138,6 +144,7 @@ export default function FeedPage() {
         leadTime: work.leadTime,
         imageLabel: work.imageLabel,
         palette: work.palette,
+        id: undefined,
       };
     });
 
@@ -179,6 +186,8 @@ export default function FeedPage() {
       "--image-height": imageHeight,
     };
   };
+  const canDeleteWork = (work: FeedItem) =>
+    work.source === "local" && session?.creatorSlug === work.creatorSlug;
 
   return (
     <main className={styles.page}>
@@ -257,6 +266,8 @@ export default function FeedPage() {
 
         <section className={styles.feedBoard}>
           {filteredWorks.map((work, index) => {
+            const localWork = work.source === "local" ? work : null;
+
             return (
               <article key={work.key} className={styles.card}>
                 <Link
@@ -299,6 +310,22 @@ export default function FeedPage() {
                     <span>{work.priceRange}</span>
                     <span>{work.leadTime}</span>
                   </div>
+
+                  {localWork && canDeleteWork(localWork) ? (
+                    <div className={styles.localActionRow}>
+                      <button
+                        type="button"
+                        className={styles.deleteButton}
+                        onClick={() => {
+                          if (window.confirm(`Delete "${localWork.title}" from your feed?`)) {
+                            deleteDemoWork(localWork.id);
+                          }
+                        }}
+                      >
+                        Delete post
+                      </button>
+                    </div>
+                  ) : null}
                 </div>
               </article>
             );

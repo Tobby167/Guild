@@ -229,6 +229,16 @@ export function getWorksForCreator(creatorSlug: string) {
   return getDemoWorks().filter((work) => work.creatorSlug === creatorSlug);
 }
 
+export function deleteDemoWork(workId: string) {
+  const works = getDemoWorks();
+  const nextWorks = works.filter((work) => work.id !== workId);
+  writeStorage(STORAGE_KEYS.uploads, nextWorks);
+
+  if (isBrowser()) {
+    window.dispatchEvent(new Event(WORKS_EVENT));
+  }
+}
+
 export function subscribeToDemoWorks(callback: () => void) {
   if (!isBrowser()) {
     return () => undefined;

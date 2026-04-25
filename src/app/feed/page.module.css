@@ -408,6 +408,22 @@
   font-weight: 600;
 }
 
+.localActionRow {
+  display: flex;
+  padding-top: 0.4rem;
+}
+
+.deleteButton {
+  border: 1px solid rgba(127, 54, 36, 0.16);
+  border-radius: 999px;
+  background: rgba(127, 54, 36, 0.08);
+  color: #7f3624;
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 0.55rem 0.8rem;
+  cursor: pointer;
+}
+
 @media (max-width: 1180px) {
   .feedBoard {
     columns: 4 13.5rem;

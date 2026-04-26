@@ -102,16 +102,34 @@ function InboxPageImpl() {
               </aside>
             </section>
 
+            <section className={styles.welcomeCard}>
+              <div className={styles.logoMark} aria-hidden="true">
+                GU
+              </div>
+              <div className={styles.welcomeCopy}>
+                <p className={styles.cardLabel}>Welcome to Guild</p>
+                <h2>We&apos;re happy to have you on board.</h2>
+                <p>
+                  This inbox is your calm place for commission requests, updates,
+                  and the conversations that grow around your work. Keep your
+                  studio ready, check in often, and let Guild help you stay close
+                  to the people who want to create with you.
+                </p>
+              </div>
+            </section>
+
             {message ? <p className={styles.selectorNote}>{message}</p> : null}
 
             <section className={styles.requestSection}>
               {requests.length === 0 ? (
                 <div className={styles.emptyState}>
                   <p className={styles.cardLabel}>No requests yet</p>
-                  <h2>This inbox is clear for now.</h2>
+                  <h2>Your inbox is set up and ready.</h2>
                   <p>
-                    Submit a request from the request form and it will appear
-                    here under your creator account.
+                    We&apos;ll place every new commission request here as soon as
+                    someone reaches out. Until then, you can keep posting work,
+                    share your page, or send a test request into Guild to see how
+                    it feels from both sides.
                   </p>
                   <Link href="/request" className={styles.secondaryButton}>
                     Open request form

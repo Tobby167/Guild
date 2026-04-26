@@ -21,6 +21,7 @@
 .topbar,
 .heroCopy,
 .sideCard,
+.welcomeCard,
 .requestCard,
 .emptyState {
   border: 1px solid rgba(30, 66, 66, 0.1);
@@ -60,6 +61,7 @@
 
 .heroCopy,
 .sideCard,
+.welcomeCard,
 .requestCard,
 .emptyState {
   padding: 30px;
@@ -111,6 +113,49 @@
   color: #173331;
   font: inherit;
   padding: 15px 16px;
+}
+
+.welcomeCard {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 20px;
+  align-items: center;
+  margin-bottom: 22px;
+  background:
+    radial-gradient(circle at top left, rgba(201, 156, 112, 0.18), transparent 42%),
+    rgba(255, 250, 243, 0.92);
+}
+
+.logoMark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 84px;
+  height: 84px;
+  border-radius: 28px;
+  background: linear-gradient(160deg, #1e1915 0%, #3d2d21 100%);
+  color: #f6efe6;
+  font-size: 1.7rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+}
+
+.welcomeCopy {
+  display: grid;
+  gap: 10px;
+}
+
+.welcomeCopy h2 {
+  margin: 0;
+  color: #173331;
+  font-size: clamp(1.7rem, 3vw, 2.4rem);
+  line-height: 1.02;
+}
+
+.welcomeCopy p:last-child {
+  margin: 0;
+  color: rgba(23, 51, 49, 0.82);
+  line-height: 1.75;
 }
 
 .requestList {
@@ -224,6 +269,11 @@
   .metaGrid {
     grid-template-columns: 1fr;
   }
+
+  .welcomeCard {
+    grid-template-columns: 1fr;
+    justify-items: start;
+  }
 }
 
 @media (max-width: 720px) {
@@ -239,6 +289,7 @@
 
   .heroCopy,
   .sideCard,
+  .welcomeCard,
   .requestCard,
   .emptyState {
     border-radius: 24px;
@@ -249,5 +300,12 @@
   .requestCard h2,
   .emptyState h2 {
     font-size: 2.2rem;
+  }
+
+  .logoMark {
+    width: 72px;
+    height: 72px;
+    border-radius: 24px;
+    font-size: 1.45rem;
   }
 }

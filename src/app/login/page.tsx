@@ -5,47 +5,60 @@ import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import {
   getDemoProfiles,
-  saveCurrentSession,
-  type GuildDemoProfile,
 } from "@/lib/guild-demo-state";
+import { getSupabaseBrowserClient } from "@/lib/supabase/client";
+import { ensureProfileFromSupabaseUser } from "@/lib/supabase/profiles";
 import styles from "./page.module.css";
-
-function makeSession(profile: GuildDemoProfile) {
-  return {
-    profileId: profile.id,
-    name: profile.name,
-    email: profile.email,
-    role: profile.role,
-    creatorSlug:
-      profile.role === "creator" || profile.role === "both" ? profile.slug : undefined,
-    creatorName:
-      profile.role === "creator" || profile.role === "both" ? profile.name : undefined,
-  };
-}
 
 export default function LoginPage() {
   const router = useRouter();
   const profiles = useMemo(() => getDemoProfiles(), []);
   const [email, setEmail] = useState(profiles[0]?.email ?? "");
+  const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
 
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    const profile = profiles.find(
-      (item) => item.email.toLowerCase() === email.trim().toLowerCase(),
-    );
-
-    if (!profile) {
-      setMessage("No local Guild account was found for that email. Sign up first.");
+    if (!email.trim() || !password.trim()) {
+      setMessage("Enter your email and password first.");
       return;
     }
 
-    saveCurrentSession(makeSession(profile));
-    router.push(
-      profile.role === "creator" || profile.role === "both" ? "/studio" : "/feed",
-    );
-    router.refresh();
+    setIsSaving(true);
+    setMessage("");
+
+    try {
+      const supabase = getSupabaseBrowserClient();
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: email.trim().toLowerCase(),
+        password: password.trim(),
+      });
+
+      if (error) {
+        setMessage(error.message);
+        return;
+      }
+
+      if (!data.user) {
+        setMessage("Guild could not open that account yet.");
+        return;
+      }
+
+      const profile = await ensureProfileFromSupabaseUser(data.user);
+
+      router.push(
+        profile.role === "creator" || profile.role === "both" ? "/studio" : "/feed",
+      );
+      router.refresh();
+    } catch {
+      setMessage(
+        "Guild still needs the profiles table SQL before Supabase login can finish cleanly.",
+      );
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -57,8 +70,8 @@ export default function LoginPage() {
           <p className={styles.eyebrow}>Log in</p>
           <h1>Open your Guild account.</h1>
           <p>
-            This demo login checks the local accounts saved in your browser and
-            restores that session instantly.
+            Choose an account saved on this device and step back into Guild
+            instantly.
           </p>
         </div>
 
@@ -73,9 +86,19 @@ export default function LoginPage() {
             />
           </label>
 
+          <label className={styles.field}>
+            <span>Password</span>
+            <input
+              type="password"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              placeholder="Your Guild password"
+            />
+          </label>
+
           {profiles.length > 0 ? (
             <div className={styles.savedAccounts}>
-              <p className={styles.savedLabel}>Saved local accounts</p>
+              <p className={styles.savedLabel}>Saved accounts on this device</p>
               <div className={styles.savedList}>
                 {profiles.map((profile) => (
                   <button
@@ -92,12 +115,12 @@ export default function LoginPage() {
             </div>
           ) : (
             <p className={styles.helper}>
-              No local account exists yet. Create one first to test the full flow.
+              No Guild account exists on this device yet. Create one first.
             </p>
           )}
 
           <div className={styles.actions}>
-            <button type="submit" className={styles.primaryButton}>
+            <button type="submit" className={styles.primaryButton} disabled={isSaving}>
               Log in
             </button>
             <Link href="/join" className={styles.secondaryButton}>

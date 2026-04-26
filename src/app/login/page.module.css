@@ -5,13 +5,7 @@
 }
 
 .backdrop {
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  background:
-    radial-gradient(circle at top right, rgba(200, 161, 90, 0.12), transparent 32%),
-    radial-gradient(circle at left, rgba(112, 141, 120, 0.1), transparent 30%);
-  pointer-events: none;
+  display: none;
 }
 
 .card {

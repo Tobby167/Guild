@@ -2,11 +2,13 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useState, useSyncExternalStore, type ReactNode } from "react";
+import { useEffect, useState, useSyncExternalStore, type ReactNode } from "react";
 import {
   clearCurrentSession,
   getCurrentSession,
 } from "@/lib/guild-demo-state";
+import { getSupabaseBrowserClient } from "@/lib/supabase/client";
+import { ensureProfileFromSupabaseUser, signOutSupabase } from "@/lib/supabase/profiles";
 import styles from "./app-frame.module.css";
 
 const appLinks = [
@@ -16,10 +18,64 @@ const appLinks = [
   { href: "/feed", label: "Feed" },
 ];
 
+function getRouteMood(pathname: string) {
+  if (pathname === "/") {
+    return {
+      frameClass: styles.themeHome,
+      note: "Overview and direction",
+    };
+  }
+
+  if (
+    pathname === "/feed" ||
+    pathname.startsWith("/work/") ||
+    pathname.startsWith("/creators/")
+  ) {
+    return {
+      frameClass: styles.themeFeed,
+      note: "Discovery mode",
+    };
+  }
+
+  if (pathname === "/studio" || pathname.startsWith("/studio/")) {
+    return {
+      frameClass: styles.themeStudio,
+      note: "Maker workspace",
+    };
+  }
+
+  if (pathname === "/inbox") {
+    return {
+      frameClass: styles.themeInbox,
+      note: "Inbox and replies",
+    };
+  }
+
+  if (pathname === "/request") {
+    return {
+      frameClass: styles.themeRequest,
+      note: "Commission brief",
+    };
+  }
+
+  if (pathname === "/join" || pathname === "/login") {
+    return {
+      frameClass: styles.themeJoin,
+      note: "Welcome and setup",
+    };
+  }
+
+  return {
+    frameClass: styles.themeHome,
+    note: "App walkthrough",
+  };
+}
+
 export function AppFrame({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
+  const routeMood = getRouteMood(pathname);
   const session = useSyncExternalStore(
     (callback) => {
       if (typeof window === "undefined") {
@@ -38,7 +94,48 @@ export function AppFrame({ children }: { children: ReactNode }) {
     () => null,
   );
 
-  const handleLogout = () => {
+  useEffect(() => {
+    const supabase = getSupabaseBrowserClient();
+
+    supabase.auth
+      .getSession()
+      .then(async ({ data, error }) => {
+        if (error) {
+          return;
+        }
+
+        if (!data.session?.user) {
+          clearCurrentSession();
+          return;
+        }
+
+        try {
+          await ensureProfileFromSupabaseUser(data.session.user);
+        } catch {}
+      })
+      .catch(() => undefined);
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+      if (!nextSession?.user) {
+        clearCurrentSession();
+        return;
+      }
+
+      void ensureProfileFromSupabaseUser(nextSession.user);
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  const handleLogout = async () => {
+    try {
+      await signOutSupabase();
+    } catch {}
+
     clearCurrentSession();
     setMenuOpen(false);
     router.push("/");
@@ -46,7 +143,7 @@ export function AppFrame({ children }: { children: ReactNode }) {
   };
 
   return (
-    <div className={styles.frame}>
+    <div className={`${styles.frame} ${routeMood.frameClass}`}>
       <div
         className={menuOpen ? styles.overlayVisible : styles.overlay}
         aria-hidden={menuOpen ? "false" : "true"}
@@ -102,9 +199,9 @@ export function AppFrame({ children }: { children: ReactNode }) {
         </div>
 
         <div className={styles.sidebarNote}>
-          <p className={styles.sidebarNoteLabel}>Testing flow</p>
+          <p className={styles.sidebarNoteLabel}>Core flow</p>
           <p>
-            Join, browse the feed, upload a piece, and watch requests land in the inbox.
+            Join Guild, upload work, browse the feed, and manage requests in one place.
           </p>
         </div>
       </aside>
@@ -128,10 +225,8 @@ export function AppFrame({ children }: { children: ReactNode }) {
             </button>
 
             <div className={styles.authIntro}>
-              <p className={styles.authLabel}>Guild preview</p>
-              <p className={styles.authNote}>
-                {pathname === "/" ? "Homepage and direction" : "App walkthrough"}
-              </p>
+              <p className={styles.authLabel}>Guild</p>
+              <p className={styles.authNote}>{routeMood.note}</p>
             </div>
           </div>
 

@@ -4,13 +4,8 @@ import dynamic from "next/dynamic";
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import {
-  deleteDemoWork,
-  getCurrentSession,
-  getDemoProfiles,
-  getWorksForCreator,
-  subscribeToDemoWorks,
-} from "@/lib/guild-demo-state";
+import { getCurrentSession, getDemoProfiles } from "@/lib/guild-demo-state";
+import { deleteWorkPost, fetchWorkPostsForCreator, type GuildWorkPost } from "@/lib/supabase/works";
 import styles from "./page.module.css";
 
 function StudioPageImpl() {
@@ -18,22 +13,36 @@ function StudioPageImpl() {
   const profile = session?.creatorSlug
     ? getDemoProfiles().find((item) => item.id === session.profileId) ?? null
     : null;
-  const [uploads, setUploads] = useState(() =>
-    session?.creatorSlug ? getWorksForCreator(session.creatorSlug) : [],
-  );
+  const [uploads, setUploads] = useState<GuildWorkPost[]>([]);
+  const [message, setMessage] = useState("");
 
   useEffect(() => {
-    if (!session?.creatorSlug) {
-      return undefined;
+    if (!session?.profileId || !(session.role === "creator" || session.role === "both")) {
+      return;
     }
 
-    return subscribeToDemoWorks(() => {
-      setUploads(getWorksForCreator(session.creatorSlug!));
-    });
-  }, [session?.creatorSlug]);
+    let active = true;
+    void fetchWorkPostsForCreator(session.profileId)
+      .then((data) => {
+        if (active) {
+          setUploads(data);
+        }
+      })
+      .catch(() => {
+        if (active) {
+          setMessage(
+            "Guild still needs the work_posts table SQL run in Supabase before Studio can load uploaded work.",
+          );
+        }
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [session?.profileId, session?.role]);
 
   const commissionReadyCount = useMemo(
-    () => uploads.filter((work) => work.commissionReady).length,
+    () => uploads.filter((work) => work.commission_ready).length,
     [uploads],
   );
 
@@ -103,7 +112,7 @@ function StudioPageImpl() {
                   <Link href="/studio/new" className={styles.primaryButton}>
                     Upload a new piece
                   </Link>
-                  <Link href={`/inbox?creator=${session.creatorSlug}`} className={styles.secondaryButton}>
+                  <Link href="/inbox" className={styles.secondaryButton}>
                     Open creator inbox
                   </Link>
                 </div>
@@ -113,8 +122,10 @@ function StudioPageImpl() {
             <section className={styles.uploadSection}>
               <div className={styles.sectionHeading}>
                 <p className={styles.cardLabel}>Uploaded work</p>
-                <h2>Your local Guild portfolio in this browser.</h2>
+                <h2>Your Guild portfolio.</h2>
               </div>
+
+              {message ? <p className={styles.helperText}>{message}</p> : null}
 
               {uploads.length === 0 ? (
                 <div className={styles.emptyUploads}>
@@ -125,10 +136,10 @@ function StudioPageImpl() {
                 <div className={styles.uploadGrid}>
                   {uploads.map((work) => (
                     <article key={work.id} className={styles.uploadCard}>
-                      {work.imageDataUrl ? (
+                      {work.image_data_url ? (
                         <Image
                           className={styles.uploadImage}
-                          src={work.imageDataUrl}
+                          src={work.image_data_url}
                           alt={work.title}
                           width={720}
                           height={520}
@@ -136,7 +147,7 @@ function StudioPageImpl() {
                         />
                       ) : (
                         <div className={styles.uploadPlaceholder}>
-                          <strong>{work.imageLabel}</strong>
+                          <strong>{work.image_label}</strong>
                         </div>
                       )}
 
@@ -145,16 +156,24 @@ function StudioPageImpl() {
                         <h3>{work.title}</h3>
                         <p>{work.summary}</p>
                         <div className={styles.metaRow}>
-                          <span>{work.priceRange}</span>
-                          <span>{work.leadTime}</span>
+                          <span>{work.price_range}</span>
+                          <span>{work.lead_time}</span>
                         </div>
                         <div className={styles.uploadActions}>
                           <button
                             type="button"
                             className={styles.deleteButton}
-                            onClick={() => {
-                              if (window.confirm(`Delete "${work.title}" from Studio?`)) {
-                                deleteDemoWork(work.id);
+                            onClick={async () => {
+                              if (!window.confirm(`Delete "${work.title}" from Studio?`)) {
+                                return;
+                              }
+
+                              try {
+                                await deleteWorkPost(work.id);
+                                const next = await fetchWorkPostsForCreator(session.profileId);
+                                setUploads(next);
+                              } catch {
+                                setMessage("Guild could not delete that work yet.");
                               }
                             }}
                           >

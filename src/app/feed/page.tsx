@@ -2,20 +2,9 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
-import {
-  creators,
-  guildCategories,
-  type GuildCategory,
-  works,
-} from "@/lib/guild-data";
-import {
-  deleteDemoWork,
-  getCurrentSession,
-  getDemoProfiles,
-  getDemoWorks,
-  subscribeToDemoWorks,
-  type GuildDemoWork,
-} from "@/lib/guild-demo-state";
+import { guildCategories, type GuildCategory } from "@/lib/guild-data";
+import { getCurrentSession } from "@/lib/guild-demo-state";
+import { deleteWorkPost, fetchWorkPosts, type GuildWorkPost } from "@/lib/supabase/works";
 import styles from "./page.module.css";
 
 type FeedFilter = "All" | GuildCategory;
@@ -25,49 +14,13 @@ type FeedCardStyle = CSSProperties & {
   "--tone-c": string;
   "--image-height": string;
 };
-type FeedItem =
-  | {
-      source: "seed";
-      key: string;
-      href: string;
-      creatorSlug: string;
-      creatorHref: string;
-      creatorName: string;
-      creatorTrust: string;
-      category: GuildCategory;
-      format: string;
-      commissionReady: boolean;
-      title: string;
-      priceRange: string;
-      leadTime: string;
-      imageLabel: string;
-      palette: [string, string, string];
-      id?: undefined;
-      imageDataUrl?: undefined;
-    }
-  | {
-      source: "local";
-      id: string;
-      key: string;
-      href: string;
-      creatorSlug: string;
-      creatorHref: string;
-      creatorName: string;
-      creatorTrust: string;
-      category: GuildCategory;
-      format: string;
-      commissionReady: boolean;
-      title: string;
-      priceRange: string;
-      leadTime: string;
-      imageLabel: string;
-      palette: [string, string, string];
-      imageDataUrl?: string;
-    };
+
+const feedPalette: [string, string, string] = ["#1f1711", "#8d6c4f", "#f3e7d6"];
 
 export default function FeedPage() {
   const [selectedCategories, setSelectedCategories] = useState<GuildCategory[]>([]);
-  const [localWorks, setLocalWorks] = useState<GuildDemoWork[]>(() => getDemoWorks());
+  const [workPosts, setWorkPosts] = useState<GuildWorkPost[]>([]);
+  const [message, setMessage] = useState("");
   const session = getCurrentSession();
   const categoryFilters: FeedFilter[] = ["All", ...guildCategories];
   const imageHeights = [
@@ -82,7 +35,27 @@ export default function FeedPage() {
   ];
   const allActive = selectedCategories.length === 0;
 
-  useEffect(() => subscribeToDemoWorks(() => setLocalWorks(getDemoWorks())), []);
+  useEffect(() => {
+    let active = true;
+
+    void fetchWorkPosts()
+      .then((data) => {
+        if (active) {
+          setWorkPosts(data);
+        }
+      })
+      .catch(() => {
+        if (active) {
+          setMessage(
+            "Guild still needs the work_posts table SQL run in Supabase before the feed can load shared posts.",
+          );
+        }
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const toggleCategory = (category: FeedFilter) => {
     if (category === "All") {
@@ -99,95 +72,47 @@ export default function FeedPage() {
     });
   };
 
-  const feedItems = useMemo<FeedItem[]>(() => {
-    const localProfiles = getDemoProfiles();
-    const localFeedItems: FeedItem[] = localWorks.map((work) => {
-      const profile = localProfiles.find((item) => item.slug === work.creatorSlug);
-
-      return {
-        source: "local",
-        id: work.id,
-        key: `local-${work.id}`,
-        href: "/studio",
-        creatorSlug: work.creatorSlug,
-        creatorHref: "/studio",
-        creatorName: profile?.name ?? work.creatorName,
-        creatorTrust: profile?.verified ? "Verified" : "In Review",
-        category: work.category,
-        format: work.format,
-        commissionReady: work.commissionReady,
-        title: work.title,
-        priceRange: work.priceRange,
-        leadTime: work.leadTime,
-        imageLabel: work.imageLabel,
-        palette: ["#1f1711", "#8d6c4f", "#f3e7d6"],
-        imageDataUrl: work.imageDataUrl,
-      };
-    });
-
-    const seedFeedItems: FeedItem[] = works.map((work) => {
-      const creator = creators.find((item) => item.slug === work.creatorSlug);
-
-      return {
-        source: "seed",
-        key: `seed-${work.slug}`,
-        href: `/work/${work.slug}`,
-        creatorSlug: work.creatorSlug,
-        creatorHref: creator ? `/creators/${creator.slug}` : "/feed",
-        creatorName: creator?.name ?? "Guild Creator",
-        creatorTrust: creator?.verified ? "Verified" : "In Review",
-        category: work.category,
-        format: work.format,
-        commissionReady: work.commissionReady,
-        title: work.title,
-        priceRange: work.priceRange,
-        leadTime: work.leadTime,
-        imageLabel: work.imageLabel,
-        palette: work.palette,
-        id: undefined,
-      };
-    });
-
-    return [...localFeedItems, ...seedFeedItems];
-  }, [localWorks]);
-
   const filteredWorks = useMemo(
     () =>
       allActive
-        ? feedItems
-        : feedItems.filter((work) => selectedCategories.includes(work.category)),
-    [allActive, feedItems, selectedCategories],
+        ? workPosts
+        : workPosts.filter((work) => selectedCategories.includes(work.category)),
+    [allActive, workPosts, selectedCategories],
   );
+
   const visibleCreatorCount = useMemo(
-    () => new Set(filteredWorks.map((work) => work.creatorSlug)).size,
+    () => new Set(filteredWorks.map((work) => work.creator_id)).size,
     [filteredWorks],
   );
+
   const commissionReadyCount = useMemo(
-    () => filteredWorks.filter((work) => work.commissionReady).length,
+    () => filteredWorks.filter((work) => work.commission_ready).length,
     [filteredWorks],
   );
-  const buildCardStyle = (work: FeedItem, imageHeight: string): FeedCardStyle => {
-    if (work.imageDataUrl) {
+
+  const buildCardStyle = (work: GuildWorkPost, imageHeight: string): FeedCardStyle => {
+    if (work.image_data_url) {
       return {
-        "--tone-a": work.palette[0],
-        "--tone-b": work.palette[1],
-        "--tone-c": work.palette[2],
+        "--tone-a": feedPalette[0],
+        "--tone-b": feedPalette[1],
+        "--tone-c": feedPalette[2],
         "--image-height": imageHeight,
-        backgroundImage: `linear-gradient(rgba(19, 14, 10, 0.28), rgba(19, 14, 10, 0.18)), url(${work.imageDataUrl})`,
+        backgroundImage: `linear-gradient(rgba(19, 14, 10, 0.28), rgba(19, 14, 10, 0.18)), url(${work.image_data_url})`,
         backgroundSize: "cover",
         backgroundPosition: "center",
       };
     }
 
     return {
-      "--tone-a": work.palette[0],
-      "--tone-b": work.palette[1],
-      "--tone-c": work.palette[2],
+      "--tone-a": feedPalette[0],
+      "--tone-b": feedPalette[1],
+      "--tone-c": feedPalette[2],
       "--image-height": imageHeight,
     };
   };
-  const canDeleteWork = (work: FeedItem) =>
-    work.source === "local" && session?.creatorSlug === work.creatorSlug;
+
+  const hasAnyPosts = workPosts.length > 0;
+  const hasFilteredPosts = filteredWorks.length > 0;
 
   return (
     <main className={styles.page}>
@@ -197,17 +122,17 @@ export default function FeedPage() {
         <section className={styles.boardIntro}>
           <div className={styles.introCopy}>
             <p className={styles.eyebrow}>Handmade discovery</p>
-            <h1>Discover the work first. Meet the maker behind it next.</h1>
+            <h1>See what Guild creators have actually posted.</h1>
             <p>
-              Guild brings crochet, knitting, sewing, embroidery, tie-dye,
-              beadwork, and handmade accessories into one calm, inspiration-led
-              feed built for trust, custom work, and beautiful browsing.
+              The feed now runs from shared Guild posts. As creators add their
+              work, this board becomes the place where buyers discover pieces,
+              trust makers, and move into commission requests.
             </p>
 
             <div className={styles.introPills}>
-              <span>Inspiration-first</span>
+              <span>Creator-posted work only</span>
               <span>Commission-aware</span>
-              <span>Creator trust built in</span>
+              <span>Shared across devices</span>
             </div>
           </div>
 
@@ -228,9 +153,9 @@ export default function FeedPage() {
             </div>
 
             <p className={styles.introNote}>
-              Browse the box, open a piece, and follow the work into the creator
-              profile when you want something made for you. Your local studio
-              uploads will also appear here first.
+              Upload from Studio to push work into the shared feed. Buyers can
+              then move from the board into a structured request instead of
+              scattered DMs.
             </p>
           </div>
         </section>
@@ -257,80 +182,124 @@ export default function FeedPage() {
           })}
 
           <p className={styles.filterStatus}>
-            Showing side by side:{" "}
+            Showing:{" "}
             <strong>
-              {allActive ? "all v1 art categories" : selectedCategories.join(" / ")}
+              {allActive ? "all posted categories" : selectedCategories.join(" / ")}
             </strong>
           </p>
         </section>
 
-        <section className={styles.feedBoard}>
-          {filteredWorks.map((work, index) => {
-            const localWork = work.source === "local" ? work : null;
+        {message ? <p className={styles.summary}>{message}</p> : null}
 
-            return (
-              <article key={work.key} className={styles.card}>
-                <Link
-                  href={work.href}
-                  className={styles.imageCard}
-                  style={buildCardStyle(
-                    work,
-                    imageHeights[index % imageHeights.length],
-                  )}
-                >
-                  <div className={styles.imageOverlay}>
-                    <span className={styles.imageBadge}>{work.format}</span>
-                    {work.source === "local" ? (
-                      <span className={styles.localBadge}>Studio Upload</span>
-                    ) : null}
-                    {work.commissionReady ? (
-                      <span className={styles.readyBadge}>Commission Ready</span>
-                    ) : null}
-                  </div>
+        {!hasAnyPosts ? (
+          <section className={styles.emptyBoard}>
+            <p className={styles.cardLabel}>Nothing posted yet</p>
+            <h2>Guild needs its first real pieces.</h2>
+            <p>
+              Once creators upload work into Studio, those pieces will appear
+              here for buyers to discover across devices.
+            </p>
+            <div className={styles.emptyActions}>
+              <Link href="/studio/new" className={styles.emptyPrimary}>
+                Upload a piece
+              </Link>
+              <Link href="/join" className={styles.emptySecondary}>
+                Create a creator account
+              </Link>
+            </div>
+          </section>
+        ) : !hasFilteredPosts ? (
+          <section className={styles.emptyBoard}>
+            <p className={styles.cardLabel}>No matches yet</p>
+            <h2>Nothing in this category set right now.</h2>
+            <p>
+              Try another mix of categories or reset the board to see everything
+              that has been posted so far.
+            </p>
+            <div className={styles.emptyActions}>
+              <button
+                type="button"
+                className={styles.emptyPrimary}
+                onClick={() => setSelectedCategories([])}
+              >
+                Show all posts
+              </button>
+            </div>
+          </section>
+        ) : (
+          <section className={styles.feedBoard}>
+            {filteredWorks.map((work, index) => {
+              const ownWork = session?.profileId === work.creator_id;
+              const targetHref = ownWork ? "/studio" : `/request?creator=${work.creator_slug}`;
 
-                  <div className={styles.imageText}>
-                    <strong>{work.imageLabel}</strong>
-                  </div>
-                </Link>
-
-                <div className={styles.cardBody}>
-                  <h2>
-                    <Link href={work.href}>{work.title}</Link>
-                  </h2>
-
-                  <div className={styles.creatorRow}>
-                    <div className={styles.creatorBlock}>
-                      <p className={styles.creatorLabel}>{work.category}</p>
-                      <Link href={work.creatorHref}>{work.creatorName}</Link>
+              return (
+                <article key={work.id} className={styles.card}>
+                  <Link
+                    href={targetHref}
+                    className={styles.imageCard}
+                    style={buildCardStyle(work, imageHeights[index % imageHeights.length])}
+                  >
+                    <div className={styles.imageOverlay}>
+                      <span className={styles.imageBadge}>{work.format}</span>
+                      {work.commission_ready ? (
+                        <span className={styles.readyBadge}>Commission Ready</span>
+                      ) : null}
                     </div>
-                    <span className={styles.creatorTrust}>{work.creatorTrust}</span>
-                  </div>
 
-                  <div className={styles.metaRow}>
-                    <span>{work.priceRange}</span>
-                    <span>{work.leadTime}</span>
-                  </div>
-
-                  {localWork && canDeleteWork(localWork) ? (
-                    <div className={styles.localActionRow}>
-                      <button
-                        type="button"
-                        className={styles.deleteButton}
-                        onClick={() => {
-                          if (window.confirm(`Delete "${localWork.title}" from your feed?`)) {
-                            deleteDemoWork(localWork.id);
-                          }
-                        }}
-                      >
-                        Delete post
-                      </button>
+                    <div className={styles.imageText}>
+                      <strong>{work.image_label}</strong>
                     </div>
-                  ) : null}
-                </div>
-              </article>
-            );
-          })}
-        </section>
+                  </Link>
+
+                  <div className={styles.cardBody}>
+                    <h2>
+                      <Link href={targetHref}>{work.title}</Link>
+                    </h2>
+
+                    <div className={styles.creatorRow}>
+                      <div className={styles.creatorBlock}>
+                        <p className={styles.creatorLabel}>{work.category}</p>
+                        <Link href={targetHref}>{work.creator_name}</Link>
+                      </div>
+                      <span className={styles.creatorTrust}>
+                        {work.creator_verified ? "Verified" : "In Review"}
+                      </span>
+                    </div>
+
+                    <div className={styles.metaRow}>
+                      <span>{work.price_range}</span>
+                      <span>{work.lead_time}</span>
+                    </div>
+
+                    {ownWork ? (
+                      <div className={styles.localActionRow}>
+                        <button
+                          type="button"
+                          className={styles.deleteButton}
+                          onClick={async () => {
+                            if (!window.confirm(`Delete "${work.title}" from the feed?`)) {
+                              return;
+                            }
+
+                            try {
+                              await deleteWorkPost(work.id);
+                              const next = await fetchWorkPosts();
+                              setWorkPosts(next);
+                            } catch {
+                              setMessage("Guild could not delete that post yet.");
+                            }
+                          }}
+                        >
+                          Delete post
+                        </button>
+                      </div>
+                    ) : null}
+                  </div>
+                </article>
+              );
+            })}
+          </section>
+        )}
       </section>
     </main>
   );

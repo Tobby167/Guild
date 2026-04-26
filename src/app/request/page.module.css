@@ -2,22 +2,12 @@
   position: relative;
   min-height: 100vh;
   overflow: hidden;
-  background:
-    radial-gradient(circle at top left, rgba(243, 198, 127, 0.2), transparent 34%),
-    radial-gradient(circle at top right, rgba(39, 82, 83, 0.22), transparent 30%),
-    linear-gradient(180deg, #f6f1e8 0%, #ece0cf 100%);
+  background: transparent;
   color: #213332;
 }
 
 .backdrop {
-  position: absolute;
-  inset: 0;
-  background-image:
-    linear-gradient(rgba(255, 255, 255, 0.14) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.14) 1px, transparent 1px);
-  background-size: 72px 72px;
-  opacity: 0.34;
-  pointer-events: none;
+  display: none;
 }
 
 .shell {
@@ -55,6 +45,36 @@
   gap: 24px;
   align-items: stretch;
   margin-bottom: 28px;
+}
+
+.emptyState {
+  display: grid;
+  gap: 0.95rem;
+  padding: 2rem;
+  border: 1px solid rgba(30, 66, 66, 0.1);
+  border-radius: 30px;
+  background: rgba(255, 251, 245, 0.84);
+  box-shadow: 0 24px 80px rgba(27, 47, 46, 0.11);
+}
+
+.emptyState h2 {
+  margin: 0;
+  color: #173331;
+  font-size: clamp(2rem, 4vw, 3.4rem);
+  line-height: 0.98;
+}
+
+.emptyState p:last-of-type {
+  margin: 0;
+  color: rgba(23, 51, 49, 0.8);
+  line-height: 1.7;
+  max-width: 48rem;
+}
+
+.emptyActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.9rem;
 }
 
 .heroCopy,
@@ -204,15 +224,25 @@
   margin-top: 10px;
 }
 
-.primaryButton {
+.primaryButton,
+.secondaryButton {
   border: none;
   border-radius: 999px;
-  background: linear-gradient(135deg, #184b49 0%, #2d6866 100%);
-  color: #f7f3eb;
   font: inherit;
   font-weight: 700;
   padding: 14px 24px;
   cursor: pointer;
+}
+
+.primaryButton {
+  background: linear-gradient(135deg, #184b49 0%, #2d6866 100%);
+  color: #f7f3eb;
+}
+
+.secondaryButton {
+  background: rgba(26, 59, 59, 0.08);
+  color: #173331;
+  border: 1px solid rgba(28, 57, 57, 0.12);
 }
 
 .helperText {

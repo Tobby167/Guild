@@ -1,5 +1,86 @@
 .frame {
+  --shell-accent: #d8b06c;
+  --shell-sidebar-top: rgba(18, 14, 11, 0.96);
+  --shell-sidebar-bottom: rgba(30, 22, 17, 0.98);
+  --shell-sidebar-glow: rgba(200, 161, 90, 0.12);
+  --shell-chip-bg: rgba(255, 250, 243, 0.88);
+  --shell-chip-border: rgba(62, 45, 27, 0.12);
+  --shell-chip-text: #1d1710;
+  --shell-cta-top: #0f0c09;
+  --shell-cta-bottom: #2c2118;
+  --shell-active-top: #f0c27b;
+  --shell-active-bottom: #d8a15f;
+  --shell-muted: rgba(29, 23, 16, 0.68);
+  --page-wash-left: rgba(243, 198, 127, 0.2);
+  --page-wash-right: rgba(39, 82, 83, 0.22);
+  --page-base-top: #f6f1e8;
+  --page-base-bottom: #ece0cf;
+  --page-grid-line: rgba(255, 255, 255, 0.14);
   min-height: 100vh;
+}
+
+.themeHome {
+  --shell-accent: #b7864b;
+  --shell-sidebar-glow: rgba(200, 161, 90, 0.14);
+  --page-wash-left: rgba(229, 188, 111, 0.2);
+  --page-wash-right: rgba(104, 135, 114, 0.14);
+  --page-base-top: #f8f1e7;
+  --page-base-bottom: #eee2d4;
+}
+
+.themeFeed {
+  --shell-accent: #b07a45;
+  --shell-sidebar-glow: rgba(216, 163, 88, 0.16);
+  --shell-active-top: #f2c78a;
+  --shell-active-bottom: #d88f58;
+  --page-wash-left: rgba(224, 171, 102, 0.22);
+  --page-wash-right: rgba(137, 159, 118, 0.18);
+  --page-base-top: #f7f0e4;
+  --page-base-bottom: #f1e4d3;
+}
+
+.themeStudio {
+  --shell-accent: #7eb0a5;
+  --shell-sidebar-glow: rgba(114, 165, 151, 0.18);
+  --shell-active-top: #b8ddd4;
+  --shell-active-bottom: #72a597;
+  --page-wash-left: rgba(126, 176, 165, 0.18);
+  --page-wash-right: rgba(49, 98, 101, 0.2);
+  --page-base-top: #eef4f2;
+  --page-base-bottom: #dde9e4;
+}
+
+.themeInbox {
+  --shell-accent: #9eb1c5;
+  --shell-sidebar-glow: rgba(129, 151, 185, 0.18);
+  --shell-active-top: #d2deee;
+  --shell-active-bottom: #91a7c1;
+  --page-wash-left: rgba(146, 168, 199, 0.2);
+  --page-wash-right: rgba(61, 75, 111, 0.22);
+  --page-base-top: #eef2f8;
+  --page-base-bottom: #dfe6f1;
+}
+
+.themeJoin {
+  --shell-accent: #d79f76;
+  --shell-sidebar-glow: rgba(215, 159, 118, 0.18);
+  --shell-active-top: #f1d0b7;
+  --shell-active-bottom: #d99872;
+  --page-wash-left: rgba(240, 191, 145, 0.24);
+  --page-wash-right: rgba(194, 129, 115, 0.16);
+  --page-base-top: #fbf3eb;
+  --page-base-bottom: #f3e3d8;
+}
+
+.themeRequest {
+  --shell-accent: #b79263;
+  --shell-sidebar-glow: rgba(183, 146, 99, 0.18);
+  --shell-active-top: #e7d0ad;
+  --shell-active-bottom: #b88657;
+  --page-wash-left: rgba(214, 174, 120, 0.22);
+  --page-wash-right: rgba(92, 126, 134, 0.18);
+  --page-base-top: #f8f0e6;
+  --page-base-bottom: #eadbca;
 }
 
 .overlay,
@@ -29,9 +110,9 @@
   gap: 1.4rem;
   padding: 1.4rem 1.1rem;
   background:
-    linear-gradient(180deg, rgba(18, 14, 11, 0.96), rgba(30, 22, 17, 0.98)),
-    radial-gradient(circle at top, rgba(200, 161, 90, 0.12), transparent 38%);
-  border-right: 1px solid rgba(200, 161, 90, 0.14);
+    linear-gradient(180deg, var(--shell-sidebar-top), var(--shell-sidebar-bottom)),
+    radial-gradient(circle at top, var(--shell-sidebar-glow), transparent 38%);
+  border-right: 1px solid color-mix(in srgb, var(--shell-accent) 28%, transparent);
   box-shadow: 0 30px 90px rgba(0, 0, 0, 0.34);
   transform: translateX(-104%);
   transition: transform 0.28s ease;
@@ -103,7 +184,7 @@
 .navLabel,
 .sidebarNoteLabel,
 .authLabel {
-  color: #d8b06c;
+  color: var(--shell-accent);
   font-size: 0.74rem;
   font-weight: 700;
   letter-spacing: 0.18em;
@@ -142,7 +223,7 @@
 
 .navLinkActive {
   color: #1b140f;
-  background: linear-gradient(135deg, #f0c27b, #d8a15f);
+  background: linear-gradient(135deg, var(--shell-active-top), var(--shell-active-bottom));
   border-color: transparent;
   font-weight: 700;
 }
@@ -166,6 +247,11 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at top left, var(--page-wash-left), transparent 34%),
+    radial-gradient(circle at top right, var(--page-wash-right), transparent 30%),
+    linear-gradient(180deg, var(--page-base-top) 0%, var(--page-base-bottom) 100%);
 }
 
 .authBar {
@@ -175,7 +261,6 @@
   justify-content: space-between;
   gap: 1rem;
   padding: 1rem 1.5rem 0;
-  backdrop-filter: blur(14px);
 }
 
 .authLeft {
@@ -220,7 +305,7 @@
 }
 
 .authNote {
-  color: rgba(29, 23, 16, 0.68);
+  color: var(--shell-muted);
   font-size: 0.93rem;
 }
 
@@ -239,9 +324,9 @@
   min-height: 2.9rem;
   padding: 0 1rem;
   border-radius: 999px;
-  border: 1px solid rgba(62, 45, 27, 0.12);
-  background: rgba(255, 250, 243, 0.82);
-  color: #1d1710;
+  border: 1px solid var(--shell-chip-border);
+  background: var(--shell-chip-bg);
+  color: var(--shell-chip-text);
   font-weight: 600;
 }
 
@@ -250,7 +335,7 @@
 }
 
 .authPrimary {
-  background: linear-gradient(135deg, #0f0c09, #2c2118);
+  background: linear-gradient(135deg, var(--shell-cta-top), var(--shell-cta-bottom));
   border-color: transparent;
   color: #fff7ed;
 }

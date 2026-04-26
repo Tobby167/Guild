@@ -6,11 +6,9 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { guildCategories, type GuildCategory, type GuildWork } from "@/lib/guild-data";
-import {
-  getCurrentSession,
-  makeGuildId,
-  saveDemoWork,
-} from "@/lib/guild-demo-state";
+import { getCurrentSession } from "@/lib/guild-demo-state";
+import { createWorkPost } from "@/lib/supabase/works";
+import { getDemoProfiles } from "@/lib/guild-demo-state";
 import styles from "./page.module.css";
 
 const formats: GuildWork["format"][] = [
@@ -32,13 +30,17 @@ function NewStudioPageImpl() {
   const [commissionReady, setCommissionReady] = useState(true);
   const [imageDataUrl, setImageDataUrl] = useState<string | undefined>(undefined);
   const [message, setMessage] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
   const session = getCurrentSession();
 
   const creatorMode = session?.role === "creator" || session?.role === "both";
   const creatorSlug = session?.creatorSlug;
+  const profile = session?.profileId
+    ? getDemoProfiles().find((item) => item.id === session.profileId) ?? null
+    : null;
 
   const previewLabel = useMemo(
-    () => imageLabel.trim() || title.trim() || "Uploaded Guild preview",
+    () => imageLabel.trim() || title.trim() || "Uploaded work",
     [imageLabel, title],
   );
 
@@ -57,7 +59,7 @@ function NewStudioPageImpl() {
     reader.readAsDataURL(file);
   };
 
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
     if (!creatorMode || !session?.creatorName || !creatorSlug) {
@@ -70,27 +72,37 @@ function NewStudioPageImpl() {
       return;
     }
 
-    saveDemoWork({
-      id: makeGuildId("work"),
-      creatorSlug,
-      creatorName: session.creatorName,
-      title: title.trim(),
-      category,
-      format,
-      priceRange: priceRange.trim(),
-      leadTime: leadTime.trim(),
-      commissionReady,
-      summary: summary.trim(),
-      materials: materials
-        .split(",")
-        .map((item) => item.trim())
-        .filter(Boolean),
-      imageLabel: previewLabel,
-      imageDataUrl,
-      createdAt: new Date().toISOString(),
-    });
+    setIsSaving(true);
+    setMessage("");
 
-    router.push("/studio");
+    try {
+      await createWorkPost({
+        session,
+        verified: profile?.verified ?? false,
+        title: title.trim(),
+        category,
+        format,
+        priceRange: priceRange.trim(),
+        leadTime: leadTime.trim(),
+        commissionReady,
+        summary: summary.trim(),
+        materials: materials
+          .split(",")
+          .map((item) => item.trim())
+          .filter(Boolean),
+        imageLabel: previewLabel,
+        imageDataUrl,
+      });
+
+      router.push("/studio");
+      router.refresh();
+    } catch {
+      setMessage(
+        "Guild still needs the work_posts table SQL run in Supabase before uploads can save there.",
+      );
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -211,12 +223,12 @@ function NewStudioPageImpl() {
               </label>
 
               <div className={styles.actionRow}>
-                <button type="submit" className={styles.primaryButton}>
-                  Save to local studio
+                <button type="submit" className={styles.primaryButton} disabled={isSaving}>
+                  Save to studio
                 </button>
                 <p className={styles.helperText}>
-                  This browser demo saves the upload locally and shows it in your
-                  studio right away.
+                  This now saves the upload to Guild&apos;s Supabase-backed post
+                  table instead of only to local browser storage.
                 </p>
               </div>
 

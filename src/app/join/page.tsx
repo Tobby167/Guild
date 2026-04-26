@@ -6,12 +6,10 @@ import { guildCategories, type GuildCategory } from "@/lib/guild-data";
 import {
   clearCurrentSession,
   getCurrentSession,
-  makeGuildId,
-  makeGuildSlug,
-  saveCurrentSession,
-  saveDemoProfile,
   type GuildRole,
 } from "@/lib/guild-demo-state";
+import { getSupabaseBrowserClient } from "@/lib/supabase/client";
+import { signOutSupabase, upsertSupabaseProfile } from "@/lib/supabase/profiles";
 import styles from "./page.module.css";
 
 const roles: Array<{
@@ -41,46 +39,83 @@ export default function JoinPage() {
   const [role, setRole] = useState<GuildRole>("creator");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [category, setCategory] = useState<GuildCategory>("Crochet");
   const [location, setLocation] = useState("");
   const [bio, setBio] = useState("");
   const [message, setMessage] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
   const session = useMemo(() => getCurrentSession(), []);
   const creatorMode = role === "creator" || role === "both";
 
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    if (!name.trim() || !email.trim()) {
-      setMessage("Add your name and email first.");
+    if (!name.trim() || !email.trim() || !password.trim()) {
+      setMessage("Add your name, email, and password first.");
       return;
     }
 
-    const slug = creatorMode ? makeGuildSlug(name) : undefined;
-    const profile = saveDemoProfile({
-      id: makeGuildId("profile"),
-      slug: slug ?? makeGuildSlug(name),
-      name: name.trim(),
-      email: email.trim().toLowerCase(),
-      role,
-      category: creatorMode ? category : undefined,
-      location: location.trim() || undefined,
-      bio: bio.trim() || undefined,
-      verified: false,
-      verificationStatus: creatorMode ? "pending" : "verified",
-      createdAt: new Date().toISOString(),
-    });
+    if (password.trim().length < 8) {
+      setMessage("Use a password with at least 8 characters.");
+      return;
+    }
 
-    saveCurrentSession({
-      profileId: profile.id,
-      name: profile.name,
-      email: profile.email,
-      role: profile.role,
-      creatorSlug: creatorMode ? profile.slug : undefined,
-      creatorName: creatorMode ? profile.name : undefined,
-    });
+    setIsSaving(true);
+    setMessage("");
 
-    router.push(creatorMode ? "/studio" : "/feed");
+    try {
+      const supabase = getSupabaseBrowserClient();
+      const normalizedEmail = email.trim().toLowerCase();
+      const { data, error } = await supabase.auth.signUp({
+        email: normalizedEmail,
+        password: password.trim(),
+        options: {
+          data: {
+            name: name.trim(),
+            role,
+            category: creatorMode ? category : null,
+            location: location.trim() || null,
+            bio: bio.trim() || null,
+          },
+        },
+      });
+
+      if (error) {
+        setMessage(error.message);
+        return;
+      }
+
+      if (!data.user) {
+        setMessage("Guild could not create the account yet. Try again.");
+        return;
+      }
+
+      if (data.session?.user) {
+        await upsertSupabaseProfile(data.user.id, {
+          name: name.trim(),
+          email: normalizedEmail,
+          role,
+          category: creatorMode ? category : undefined,
+          location: location.trim() || undefined,
+          bio: bio.trim() || undefined,
+        });
+
+        router.push(creatorMode ? "/studio" : "/feed");
+        router.refresh();
+        return;
+      }
+
+      setMessage(
+        "Account created. Check your email to confirm the signup, then log in to enter Guild.",
+      );
+    } catch {
+      setMessage(
+        "Supabase is connected, but Guild still needs the profiles table SQL before this flow can finish cleanly.",
+      );
+    } finally {
+        setIsSaving(false);
+    }
   };
 
   return (
@@ -93,9 +128,9 @@ export default function JoinPage() {
             <p className={styles.eyebrow}>Join Guild</p>
             <h1>Start as a buyer, a creator, or both.</h1>
             <p className={styles.lead}>
-              This local demo stores your Guild identity in the browser so you
-              can test the real loop: join, upload work, send a request, and
-              receive it in an inbox.
+              Create a Guild identity on this device, then move through the real
+              loop: join, upload work, send a request, and receive it in an
+              inbox.
             </p>
           </div>
 
@@ -152,6 +187,18 @@ export default function JoinPage() {
 
             <div className={styles.fieldGrid}>
               <label className={styles.field}>
+                <span>Password</span>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                  placeholder="At least 8 characters"
+                />
+              </label>
+            </div>
+
+            <div className={styles.fieldGrid}>
+              <label className={styles.field}>
                 <span>Location</span>
                 <input
                   placeholder="Lagos, Nigeria"
@@ -192,7 +239,7 @@ export default function JoinPage() {
             </label>
 
             <div className={styles.actionRow}>
-              <button type="submit" className={styles.primaryButton}>
+              <button type="submit" className={styles.primaryButton} disabled={isSaving}>
                 {creatorMode ? "Enter creator studio" : "Start browsing Guild"}
               </button>
               <p className={styles.helperText}>
@@ -207,7 +254,7 @@ export default function JoinPage() {
 
           <aside className={styles.sidePanel}>
             <div className={styles.sideCard}>
-              <p className={styles.cardLabel}>Current local session</p>
+              <p className={styles.cardLabel}>Current device session</p>
               {session ? (
                 <div className={styles.sessionCard}>
                   <strong>{session.name}</strong>
@@ -217,17 +264,21 @@ export default function JoinPage() {
                   <button
                     type="button"
                     className={styles.secondaryButton}
-                    onClick={() => {
+                    onClick={async () => {
+                      try {
+                        await signOutSupabase();
+                      } catch {}
+
                       clearCurrentSession();
                       window.location.reload();
                     }}
                   >
-                    Clear local session
+                    Clear this device session
                   </button>
                 </div>
               ) : (
                 <p className={styles.helperText}>
-                  No Guild identity is saved in this browser yet.
+                  No Guild identity is saved on this device yet.
                 </p>
               )}
             </div>

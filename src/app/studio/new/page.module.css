@@ -2,22 +2,12 @@
   position: relative;
   min-height: 100vh;
   overflow: hidden;
-  background:
-    radial-gradient(circle at top left, rgba(243, 198, 127, 0.2), transparent 34%),
-    radial-gradient(circle at top right, rgba(39, 82, 83, 0.22), transparent 30%),
-    linear-gradient(180deg, #f6f1e8 0%, #ece0cf 100%);
+  background: transparent;
   color: #213332;
 }
 
 .backdrop {
-  position: absolute;
-  inset: 0;
-  background-image:
-    linear-gradient(rgba(255, 255, 255, 0.14) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.14) 1px, transparent 1px);
-  background-size: 72px 72px;
-  opacity: 0.34;
-  pointer-events: none;
+  display: none;
 }
 
 .shell {

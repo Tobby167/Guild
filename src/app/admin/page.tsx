@@ -3,7 +3,7 @@
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { creators, guildCategories } from "@/lib/guild-data";
+import { guildCategories } from "@/lib/guild-data";
 import {
   getDemoProfiles,
   getDemoRequests,
@@ -12,27 +12,6 @@ import {
   type GuildDemoRequest,
 } from "@/lib/guild-demo-state";
 import styles from "./page.module.css";
-
-const reports = [
-  {
-    type: "Copied work claim",
-    target: "Gold Loop Handbag post",
-    priority: "High",
-    status: "Review evidence",
-  },
-  {
-    type: "Spam inquiry",
-    target: "Buyer account: customflash_22",
-    priority: "Medium",
-    status: "Warn or suspend",
-  },
-  {
-    type: "Late delivery complaint",
-    target: "Commission #CM-204",
-    priority: "Low",
-    status: "Awaiting creator response",
-  },
-];
 
 const notes = [
   "Keep verification manual in v1 until the trust rules are stable.",
@@ -77,17 +56,20 @@ function AdminPageImpl() {
       note:
         openRequests.length > 0
           ? "Requests waiting for creator action"
-          : "No local request activity yet",
+          : "No request activity yet",
     },
     {
       label: "Active Creators",
-      value: String(creators.length + creatorProfiles.length),
-      note: `${creatorProfiles.length} local creator account(s) in this browser`,
+      value: String(creatorProfiles.length).padStart(2, "0"),
+      note:
+        creatorProfiles.length > 0
+          ? `${creatorProfiles.length} creator account(s) saved on this device`
+          : "No creator accounts yet",
     },
     {
       label: "Commission Requests",
       value: String(requests.length).padStart(2, "0"),
-      note: "Saved through the local request flow",
+      note: "Saved through the current Guild request flow",
     },
   ];
 
@@ -101,9 +83,9 @@ function AdminPageImpl() {
             <p className={styles.eyebrow}>Guild Internal Dashboard</p>
             <h1>Admin control for trust, safety, and platform flow.</h1>
             <p className={styles.lead}>
-              This founder-facing control room now reads the local Guild demo
-              state. Creator signups can be manually approved here, and saved
-              requests show up as real activity instead of static filler.
+              This founder-facing control room reads the current Guild state on
+              this device. Creator signups can be manually approved here, and
+              saved requests show up as real activity.
             </p>
           </div>
 
@@ -138,7 +120,7 @@ function AdminPageImpl() {
             {pendingProfiles.length === 0 ? (
               <div className={styles.listCard}>
                 <p className={styles.detailRow}>
-                  No pending creator signups in this browser yet. Use the join
+                  No pending creator signups on this device yet. Use the join
                   flow to create one, then approve it here.
                 </p>
               </div>
@@ -191,32 +173,11 @@ function AdminPageImpl() {
               </div>
               <span className={styles.panelMeta}>Priority sorted</span>
             </div>
-
-            <div className={styles.list}>
-              {reports.map((report) => (
-                <div key={report.target} className={styles.listCard}>
-                  <div className={styles.listTop}>
-                    <h3>{report.type}</h3>
-                    <span
-                      className={`${styles.priorityChip} ${
-                        report.priority === "High"
-                          ? styles.high
-                          : report.priority === "Medium"
-                            ? styles.medium
-                            : styles.low
-                      }`}
-                    >
-                      {report.priority}
-                    </span>
-                  </div>
-                  <p className={styles.detailRow}>
-                    <strong>Target:</strong> {report.target}
-                  </p>
-                  <p className={styles.detailRow}>
-                    <strong>Status:</strong> {report.status}
-                  </p>
-                </div>
-              ))}
+            <div className={styles.listCard}>
+              <p className={styles.detailRow}>
+                No reports have been filed yet. This queue will become useful
+                once creators and buyers begin using the app more actively.
+              </p>
             </div>
           </article>
         </section>
@@ -226,14 +187,14 @@ function AdminPageImpl() {
             <div className={styles.panelHeader}>
               <div>
                 <p className={styles.cardLabel}>Request Queue</p>
-                <h2>Watch live local request activity.</h2>
+                <h2>Watch live request activity.</h2>
               </div>
             </div>
 
             {requests.length === 0 ? (
               <div className={styles.simpleCard}>
                 <p className={styles.detailRow}>
-                  No local requests yet. Submit one from a work page or the
+                  No requests yet. Submit one from the request form or the
                   request form to populate this queue.
                 </p>
               </div>

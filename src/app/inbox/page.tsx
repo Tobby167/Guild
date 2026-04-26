@@ -2,68 +2,62 @@
 
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
-import { useMemo, useState } from "react";
-import { creators } from "@/lib/guild-data";
+import { useEffect, useState } from "react";
+import { getCurrentSession } from "@/lib/guild-demo-state";
 import {
-  getCurrentSession,
-  getDemoProfiles,
-  getRequestsForCreator,
-  type GuildDemoRequest,
-  updateRequestStatus,
-} from "@/lib/guild-demo-state";
+  fetchRequestsForCreator,
+  type GuildCommissionRequest,
+  updateCommissionRequestStatus,
+} from "@/lib/supabase/requests";
 import styles from "./page.module.css";
 
-type CreatorOption = {
-  slug: string;
-  name: string;
-  source: "seed" | "local";
-};
-
 function InboxPageImpl() {
-  const searchParams = useSearchParams();
-  const creatorOptions = useMemo<CreatorOption[]>(() => {
-    const localCreatorProfiles = getDemoProfiles().filter(
-      (profile) => profile.role === "creator" || profile.role === "both",
-    );
+  const session = getCurrentSession();
+  const creatorMode = session?.role === "creator" || session?.role === "both";
+  const [requests, setRequests] = useState<GuildCommissionRequest[]>([]);
+  const [message, setMessage] = useState("");
 
-    const localOptions: CreatorOption[] = localCreatorProfiles.map((profile) => ({
-      slug: profile.slug,
-      name: profile.name,
-      source: "local",
-    }));
+  useEffect(() => {
+    if (!creatorMode || !session?.profileId) {
+      return;
+    }
 
-    const seedOptions: CreatorOption[] = creators.map((creator) => ({
-      slug: creator.slug,
-      name: creator.name,
-      source: "seed",
-    }));
+    let active = true;
 
-    return [...seedOptions, ...localOptions];
-  }, []);
-  const requestedCreator = searchParams.get("creator");
-  const [selectedCreatorSlug, setSelectedCreatorSlug] = useState(
-    () =>
-      requestedCreator ??
-      getCurrentSession()?.creatorSlug ??
-      creatorOptions[0]?.slug ??
-      "",
-  );
-  const [requests, setRequests] = useState(() =>
-    selectedCreatorSlug ? getRequestsForCreator(selectedCreatorSlug) : [],
-  );
+    void fetchRequestsForCreator(session.profileId)
+      .then((data) => {
+        if (active) {
+          setRequests(data);
+        }
+      })
+      .catch(() => {
+        if (active) {
+          setMessage(
+            "Guild still needs the commission_requests table SQL run in Supabase before Inbox can load shared requests.",
+          );
+        }
+      });
 
-  const selectedCreator = useMemo(
-    () => creatorOptions.find((item) => item.slug === selectedCreatorSlug),
-    [creatorOptions, selectedCreatorSlug],
-  );
+    return () => {
+      active = false;
+    };
+  }, [creatorMode, session?.profileId]);
 
-  const handleStatusUpdate = (
+  const handleStatusUpdate = async (
     requestId: string,
-    status: GuildDemoRequest["status"],
+    status: GuildCommissionRequest["status"],
   ) => {
-    updateRequestStatus(requestId, status);
-    setRequests(getRequestsForCreator(selectedCreatorSlug));
+    if (!session?.profileId) {
+      return;
+    }
+
+    try {
+      await updateCommissionRequestStatus(requestId, status);
+      const next = await fetchRequestsForCreator(session.profileId);
+      setRequests(next);
+    } catch {
+      setMessage("Guild could not update that request yet.");
+    }
   };
 
   return (
@@ -71,141 +65,144 @@ function InboxPageImpl() {
       <div className={styles.backdrop} aria-hidden="true" />
 
       <section className={styles.shell}>
-        <section className={styles.hero}>
-          <div className={styles.heroCopy}>
-            <p className={styles.eyebrow}>Creator inbox</p>
-            <h1>Review the requests that are ready for a quote.</h1>
-            <p className={styles.lead}>
-              This inbox reads the local demo requests saved in your browser.
-              Pick any creator identity to see what buyers have submitted and
-              mark each request as new, quoted, or archived.
+        {!creatorMode || !session?.profileId ? (
+          <section className={styles.emptyState}>
+            <p className={styles.cardLabel}>No creator inbox yet</p>
+            <h2>You need a creator account to use Inbox.</h2>
+            <p>
+              Join Guild as a creator or both, then come back here to review the
+              requests sent to your work.
             </p>
-          </div>
+            <Link href="/join" className={styles.secondaryButton}>
+              Join as creator
+            </Link>
+          </section>
+        ) : (
+          <>
+            <section className={styles.hero}>
+              <div className={styles.heroCopy}>
+                <p className={styles.eyebrow}>Creator inbox</p>
+                <h1>Review the requests that are ready for a quote.</h1>
+                <p className={styles.lead}>
+                  This inbox now reads from Guild&apos;s shared request table, so
+                  the work is no longer trapped in one browser.
+                </p>
+              </div>
 
-          <aside className={styles.sideCard}>
-            <p className={styles.cardLabel}>Selected creator</p>
-            <label className={styles.selector}>
-              <span>View inbox as</span>
-              <select
-                value={selectedCreatorSlug}
-                onChange={(event) => {
-                  const nextSlug = event.target.value;
-                  setSelectedCreatorSlug(nextSlug);
-                  setRequests(nextSlug ? getRequestsForCreator(nextSlug) : []);
-                }}
-              >
-                {creatorOptions.map((item) => (
-                  <option key={`${item.source}-${item.slug}`} value={item.slug}>
-                    {item.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <p className={styles.selectorNote}>
-              {selectedCreator
-                ? `${selectedCreator.name} is currently showing ${requests.length} request${requests.length === 1 ? "" : "s"}.`
-                : "Choose a creator to open the inbox."}
-            </p>
-          </aside>
-        </section>
+              <aside className={styles.sideCard}>
+                <p className={styles.cardLabel}>Current creator</p>
+                <label className={styles.selector}>
+                  <span>Signed in as</span>
+                  <div className={styles.selectorNote}>{session.creatorName ?? session.name}</div>
+                </label>
+                <p className={styles.selectorNote}>
+                  {requests.length} request{requests.length === 1 ? "" : "s"} currently waiting
+                  in this inbox.
+                </p>
+              </aside>
+            </section>
 
-        <section className={styles.requestSection}>
-          {requests.length === 0 ? (
-            <div className={styles.emptyState}>
-              <p className={styles.cardLabel}>No requests yet</p>
-              <h2>This inbox is clear for now.</h2>
-              <p>
-                Submit a request from a work page or the request form, then come
-                back here to review it.
-              </p>
-              <Link href="/feed" className={styles.secondaryButton}>
-                Browse work and create a request
-              </Link>
-            </div>
-          ) : (
-            <div className={styles.requestList}>
-              {requests.map((request) => (
-                <article key={request.id} className={styles.requestCard}>
-                  <div className={styles.requestTop}>
-                    <div>
-                      <p className={styles.cardLabel}>{request.category}</p>
-                      <h2>{request.projectTitle}</h2>
-                    </div>
-                    <span
-                      className={`${styles.statusChip} ${
-                        request.status === "new"
-                          ? styles.statusNew
-                          : request.status === "quoted"
-                            ? styles.statusQuoted
-                            : styles.statusArchived
-                      }`}
-                    >
-                      {request.status}
-                    </span>
-                  </div>
+            {message ? <p className={styles.selectorNote}>{message}</p> : null}
 
-                  <div className={styles.metaGrid}>
-                    <article>
-                      <span>Buyer</span>
-                      <strong>{request.buyerName}</strong>
+            <section className={styles.requestSection}>
+              {requests.length === 0 ? (
+                <div className={styles.emptyState}>
+                  <p className={styles.cardLabel}>No requests yet</p>
+                  <h2>This inbox is clear for now.</h2>
+                  <p>
+                    Submit a request from the request form and it will appear
+                    here under your creator account.
+                  </p>
+                  <Link href="/request" className={styles.secondaryButton}>
+                    Open request form
+                  </Link>
+                </div>
+              ) : (
+                <div className={styles.requestList}>
+                  {requests.map((request) => (
+                    <article key={request.id} className={styles.requestCard}>
+                      <div className={styles.requestTop}>
+                        <div>
+                          <p className={styles.cardLabel}>{request.category}</p>
+                          <h2>{request.project_title}</h2>
+                        </div>
+                        <span
+                          className={`${styles.statusChip} ${
+                            request.status === "new"
+                              ? styles.statusNew
+                              : request.status === "quoted"
+                                ? styles.statusQuoted
+                                : styles.statusArchived
+                          }`}
+                        >
+                          {request.status}
+                        </span>
+                      </div>
+
+                      <div className={styles.metaGrid}>
+                        <article>
+                          <span>Buyer</span>
+                          <strong>{request.buyer_name}</strong>
+                        </article>
+                        <article>
+                          <span>Budget</span>
+                          <strong>{request.budget_range}</strong>
+                        </article>
+                        <article>
+                          <span>Needed by</span>
+                          <strong>{request.needed_by}</strong>
+                        </article>
+                        <article>
+                          <span>Reference work</span>
+                          <strong>{request.work_title ?? "Custom brief only"}</strong>
+                        </article>
+                      </div>
+
+                      <div className={styles.requestBody}>
+                        <p>
+                          <strong>Description:</strong> {request.description}
+                        </p>
+                        <p>
+                          <strong>Materials:</strong> {request.materials ?? "Not specified"}
+                        </p>
+                        <p>
+                          <strong>Delivery notes:</strong> {request.delivery_notes ?? "Not specified"}
+                        </p>
+                        <p>
+                          <strong>Reference notes:</strong> {request.reference_notes ?? "Not specified"}
+                        </p>
+                      </div>
+
+                      <div className={styles.actionRow}>
+                        <button
+                          type="button"
+                          className={styles.primaryButton}
+                          onClick={() => handleStatusUpdate(request.id, "quoted")}
+                        >
+                          Mark as quoted
+                        </button>
+                        <button
+                          type="button"
+                          className={styles.secondaryButton}
+                          onClick={() => handleStatusUpdate(request.id, "archived")}
+                        >
+                          Archive
+                        </button>
+                        <button
+                          type="button"
+                          className={styles.ghostButton}
+                          onClick={() => handleStatusUpdate(request.id, "new")}
+                        >
+                          Reset to new
+                        </button>
+                      </div>
                     </article>
-                    <article>
-                      <span>Budget</span>
-                      <strong>{request.budgetRange}</strong>
-                    </article>
-                    <article>
-                      <span>Needed by</span>
-                      <strong>{request.neededBy}</strong>
-                    </article>
-                    <article>
-                      <span>Reference work</span>
-                      <strong>{request.workTitle ?? "Custom brief only"}</strong>
-                    </article>
-                  </div>
-
-                  <div className={styles.requestBody}>
-                    <p>
-                      <strong>Description:</strong> {request.description}
-                    </p>
-                    <p>
-                      <strong>Materials:</strong> {request.materials}
-                    </p>
-                    <p>
-                      <strong>Delivery notes:</strong> {request.deliveryNotes}
-                    </p>
-                    <p>
-                      <strong>Reference notes:</strong> {request.referenceNotes}
-                    </p>
-                  </div>
-
-                  <div className={styles.actionRow}>
-                    <button
-                      type="button"
-                      className={styles.primaryButton}
-                      onClick={() => handleStatusUpdate(request.id, "quoted")}
-                    >
-                      Mark as quoted
-                    </button>
-                    <button
-                      type="button"
-                      className={styles.secondaryButton}
-                      onClick={() => handleStatusUpdate(request.id, "archived")}
-                    >
-                      Archive
-                    </button>
-                    <button
-                      type="button"
-                      className={styles.ghostButton}
-                      onClick={() => handleStatusUpdate(request.id, "new")}
-                    >
-                      Reset to new
-                    </button>
-                  </div>
-                </article>
-              ))}
-            </div>
-          )}
-        </section>
+                  ))}
+                </div>
+              )}
+            </section>
+          </>
+        )}
       </section>
     </main>
   );

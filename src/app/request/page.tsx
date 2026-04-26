@@ -3,62 +3,92 @@
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useMemo, useState } from "react";
-import { creators, getCreatorBySlug, getWorkBySlug } from "@/lib/guild-data";
+import { useEffect, useMemo, useState } from "react";
+import { getCurrentSession } from "@/lib/guild-demo-state";
 import {
-  getCurrentSession,
-  makeGuildId,
-  saveDemoRequest,
-} from "@/lib/guild-demo-state";
+  buildCreatorOptionsFromPosts,
+  createCommissionRequest,
+  type GuildCreatorOption,
+} from "@/lib/supabase/requests";
+import { fetchWorkPosts, type GuildWorkPost } from "@/lib/supabase/works";
 import styles from "./page.module.css";
 
 function RequestPageImpl() {
   const searchParams = useSearchParams();
-  const creatorSlugParam = searchParams.get("creator") ?? creators[0]?.slug ?? "";
-  const workSlugParam = searchParams.get("work");
-  const initialWork = workSlugParam ? getWorkBySlug(workSlugParam) : undefined;
-  const initialCreator = getCreatorBySlug(creatorSlugParam);
   const currentSession = getCurrentSession();
-  const [selectedCreatorSlug, setSelectedCreatorSlug] = useState<string>(creatorSlugParam);
+  const [posts, setPosts] = useState<GuildWorkPost[]>([]);
+  const [message, setMessage] = useState("");
+  const [loadingMessage, setLoadingMessage] = useState("");
+  const requestedCreator = searchParams.get("creator");
+  const creatorOptions = useMemo<GuildCreatorOption[]>(
+    () => buildCreatorOptionsFromPosts(posts),
+    [posts],
+  );
+  const [selectedCreatorSlug, setSelectedCreatorSlug] = useState<string>("");
+  const creator = useMemo(
+    () => creatorOptions.find((profile) => profile.creatorSlug === selectedCreatorSlug),
+    [creatorOptions, selectedCreatorSlug],
+  );
+  const creatorPosts = useMemo(
+    () => posts.filter((post) => post.creator_slug === selectedCreatorSlug),
+    [posts, selectedCreatorSlug],
+  );
   const [buyerName, setBuyerName] = useState(currentSession?.name ?? "");
   const [buyerEmail, setBuyerEmail] = useState(currentSession?.email ?? "");
-  const [projectTitle, setProjectTitle] = useState(
-    initialWork ? `${initialWork.title} inspired custom request` : "Custom handmade request",
-  );
-  const [category, setCategory] = useState(
-    initialWork?.category ?? initialCreator?.category ?? "",
-  );
-  const [budgetRange, setBudgetRange] = useState(
-    initialWork?.priceRange ?? "Discuss with creator",
-  );
-  const [neededBy, setNeededBy] = useState(
-    initialWork?.leadTime ?? initialCreator?.turnaround ?? "Flexible timeline",
-  );
+  const [projectTitle, setProjectTitle] = useState("Custom handmade request");
+  const [category, setCategory] = useState("");
+  const [budgetRange, setBudgetRange] = useState("Discuss with creator");
+  const [neededBy, setNeededBy] = useState("Flexible timeline");
   const [description, setDescription] = useState(
-    initialWork
-      ? `I would like a custom version of ${initialWork.title}. I like the overall feel, but I want to adjust the color palette, measurements, and finishing details to suit my needs.`
-      : "Describe what you want made, what matters most, and any details the creator should know before pricing.",
+    "Describe what you want made, what matters most, and any details the creator should know before pricing.",
   );
-  const [materials, setMaterials] = useState(
-    initialWork ? initialWork.materials.join(", ") : "Cotton yarn, beads, lining",
-  );
-  const [deliveryNotes, setDeliveryNotes] = useState("Lagos delivery preferred");
-  const [referenceNotes, setReferenceNotes] = useState(
-    "Add screenshots, inspiration, measurements, or fit notes here in the real product.",
-  );
-  const [message, setMessage] = useState("");
+  const [materials, setMaterials] = useState("");
+  const [deliveryNotes, setDeliveryNotes] = useState("");
+  const [referenceNotes, setReferenceNotes] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
 
-  const creator = useMemo(
-    () => getCreatorBySlug(selectedCreatorSlug),
-    [selectedCreatorSlug],
-  );
-  const work = useMemo(
-    () => (workSlugParam ? getWorkBySlug(workSlugParam) : undefined),
-    [workSlugParam],
-  );
+  useEffect(() => {
+    let active = true;
 
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    void fetchWorkPosts()
+      .then((data) => {
+        if (!active) {
+          return;
+        }
+
+        setPosts(data);
+
+        const firstCreatorSlug =
+          requestedCreator && data.some((post) => post.creator_slug === requestedCreator)
+            ? requestedCreator
+            : data[0]?.creator_slug ?? "";
+        const firstCreator = buildCreatorOptionsFromPosts(data).find(
+          (item) => item.creatorSlug === firstCreatorSlug,
+        );
+
+        setSelectedCreatorSlug(firstCreatorSlug);
+        setCategory(firstCreator?.category ?? "");
+      })
+      .catch(() => {
+        if (active) {
+          setLoadingMessage(
+            "Guild still needs the work_posts and commission_requests SQL run in Supabase before requests can load properly.",
+          );
+        }
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [requestedCreator]);
+
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+
+    if (!currentSession) {
+      setMessage("Log in or join Guild first before sending a request.");
+      return;
+    }
 
     if (!creator) {
       setMessage("Choose a creator first.");
@@ -70,28 +100,88 @@ function RequestPageImpl() {
       return;
     }
 
-    saveDemoRequest({
-      id: makeGuildId("request"),
-      creatorSlug: creator.slug,
-      creatorName: creator.name,
-      workSlug: work?.slug,
-      workTitle: work?.title,
-      buyerName: buyerName.trim(),
-      buyerEmail: buyerEmail.trim().toLowerCase(),
-      projectTitle: projectTitle.trim(),
-      category: category.trim() || creator.category,
-      budgetRange,
-      neededBy,
-      description: description.trim(),
-      materials: materials.trim(),
-      deliveryNotes: deliveryNotes.trim(),
-      referenceNotes: referenceNotes.trim(),
-      status: "new",
-      createdAt: new Date().toISOString(),
-    });
+    setIsSaving(true);
+    setMessage("");
 
-    setMessage(`Request saved for ${creator.name}. Open the creator inbox to review it.`);
+    try {
+      await createCommissionRequest({
+        session: currentSession,
+        creatorId: creator.creatorId,
+        creatorSlug: creator.creatorSlug,
+        creatorName: creator.creatorName,
+        projectTitle,
+        category: category || creator.category,
+        budgetRange,
+        neededBy,
+        description,
+        materials,
+        deliveryNotes,
+        referenceNotes,
+      });
+
+      setMessage(`Request saved for ${creator.creatorName}. Open the inbox to review it.`);
+    } catch {
+      setMessage(
+        "Guild still needs the commission_requests table SQL run in Supabase before requests can save there.",
+      );
+    } finally {
+      setIsSaving(false);
+    }
   };
+
+  if (!currentSession) {
+    return (
+      <main className={styles.page}>
+        <div className={styles.backdrop} aria-hidden="true" />
+
+        <section className={styles.shell}>
+          <section className={styles.emptyState}>
+            <p className={styles.cardLabel}>Log in first</p>
+            <h2>You need a Guild account to send requests.</h2>
+            <p>
+              Join or log in first, then come back to send a structured commission
+              request that lands in a creator inbox.
+            </p>
+            <div className={styles.emptyActions}>
+              <Link href="/join" className={styles.primaryButton}>
+                Sign up
+              </Link>
+              <Link href="/login" className={styles.secondaryButton}>
+                Log in
+              </Link>
+            </div>
+          </section>
+        </section>
+      </main>
+    );
+  }
+
+  if (creatorOptions.length === 0) {
+    return (
+      <main className={styles.page}>
+        <div className={styles.backdrop} aria-hidden="true" />
+
+        <section className={styles.shell}>
+          <section className={styles.emptyState}>
+            <p className={styles.cardLabel}>No creators yet</p>
+            <h2>There is nobody to request work from yet.</h2>
+            <p>
+              Guild now runs from real creator posts. Once a creator uploads
+              work in Studio, they can start receiving requests here.
+            </p>
+            <div className={styles.emptyActions}>
+              <Link href="/studio/new" className={styles.primaryButton}>
+                Upload a piece
+              </Link>
+              <Link href="/feed" className={styles.secondaryButton}>
+                Back to feed
+              </Link>
+            </div>
+          </section>
+        </section>
+      </main>
+    );
+  }
 
   return (
     <main className={styles.page}>
@@ -100,25 +190,25 @@ function RequestPageImpl() {
       <section className={styles.shell}>
         <section className={styles.hero}>
           <div className={styles.heroCopy}>
-            <p className={styles.eyebrow}>Commission Request</p>
-            <h1>Shape a clear request before it becomes a scattered DM.</h1>
+            <p className={styles.eyebrow}>Commission request</p>
+            <h1>Turn a loose idea into a clear brief.</h1>
             <p className={styles.lead}>
-              Guild guides the buyer through a structured custom request with
-              enough detail for a creator to quote clearly and confidently.
+              Guild guides buyers through a structured request so creators can
+              quote clearly, respond faster, and avoid scattered back-and-forth.
             </p>
 
             <div className={styles.snapshotGrid}>
               <article>
                 <span>Creator</span>
-                <strong>{creator?.name ?? "Choose a creator below"}</strong>
+                <strong>{creator?.creatorName ?? "Choose a creator below"}</strong>
               </article>
               <article>
-                <span>Reference piece</span>
-                <strong>{work?.title ?? "No specific piece attached yet"}</strong>
+                <span>Status</span>
+                <strong>{creator?.creatorVerified ? "Verified creator" : "Verification in review"}</strong>
               </article>
               <article>
-                <span>Typical lead time</span>
-                <strong>{creator?.turnaround ?? work?.leadTime ?? "To be discussed"}</strong>
+                <span>Posted work</span>
+                <strong>{creatorPosts.length}</strong>
               </article>
             </div>
           </div>
@@ -128,7 +218,7 @@ function RequestPageImpl() {
             <ul>
               <li>Give creators enough detail to price accurately.</li>
               <li>Reduce vague back-and-forth before a quote is sent.</li>
-              <li>Save the brief into a real creator inbox.</li>
+              <li>Save the brief directly into the chosen creator inbox.</li>
             </ul>
           </aside>
         </section>
@@ -163,18 +253,17 @@ function RequestPageImpl() {
                   value={selectedCreatorSlug}
                   onChange={(event) => {
                     const nextSlug = event.target.value;
-                    setSelectedCreatorSlug(nextSlug);
+                    const nextCreator = creatorOptions.find(
+                      (profile) => profile.creatorSlug === nextSlug,
+                    );
 
-                    if (!work) {
-                      const nextCreator = getCreatorBySlug(nextSlug);
-                      setCategory(nextCreator?.category ?? "");
-                      setNeededBy(nextCreator?.turnaround ?? "Flexible timeline");
-                    }
+                    setSelectedCreatorSlug(nextSlug);
+                    setCategory(nextCreator?.category ?? "");
                   }}
                 >
-                  {creators.map((item) => (
-                    <option key={item.slug} value={item.slug}>
-                      {item.name}
+                  {creatorOptions.map((profile) => (
+                    <option key={profile.creatorId} value={profile.creatorSlug}>
+                      {profile.creatorName}
                     </option>
                   ))}
                 </select>
@@ -250,21 +339,19 @@ function RequestPageImpl() {
             </label>
 
             <div className={styles.actionRow}>
-              <button type="submit" className={styles.primaryButton}>
+              <button type="submit" className={styles.primaryButton} disabled={isSaving}>
                 Save request to inbox
               </button>
               <p className={styles.helperText}>
-                This local demo stores the request in the browser and makes it
-                visible in the creator inbox right away.
+                This now saves the request to Guild&apos;s shared Supabase-backed
+                inbox instead of only to local browser storage.
               </p>
             </div>
 
             {message ? (
               <div className={styles.messagePanel}>
                 <p>{message}</p>
-                {creator ? (
-                  <Link href={`/inbox?creator=${creator.slug}`}>Open {creator.name}&apos;s inbox</Link>
-                ) : null}
+                {creator ? <Link href="/inbox">Open inbox</Link> : null}
               </div>
             ) : null}
           </form>
@@ -275,19 +362,19 @@ function RequestPageImpl() {
               <dl className={styles.definitionList}>
                 <div>
                   <dt>Selected creator</dt>
-                  <dd>{creator?.name ?? "None selected"}</dd>
+                  <dd>{creator?.creatorName ?? "None selected"}</dd>
                 </div>
                 <div>
                   <dt>Verification status</dt>
-                  <dd>{creator ? (creator.verified ? "Verified creator" : "In review") : "N/A"}</dd>
+                  <dd>{creator ? (creator.creatorVerified ? "Verified creator" : "In review") : "N/A"}</dd>
                 </div>
                 <div>
-                  <dt>Reference work</dt>
-                  <dd>{work?.title ?? "None selected"}</dd>
+                  <dt>Posted pieces</dt>
+                  <dd>{creatorPosts.length}</dd>
                 </div>
                 <div>
-                  <dt>Lead-time context</dt>
-                  <dd>{work?.leadTime ?? creator?.turnaround ?? "Discuss first"}</dd>
+                  <dt>Category context</dt>
+                  <dd>{creator?.category ?? "Not added yet"}</dd>
                 </div>
               </dl>
             </div>
@@ -295,11 +382,18 @@ function RequestPageImpl() {
             <div className={styles.sideCard}>
               <p className={styles.cardLabel}>What now works</p>
               <ol>
-                <li>The form saves to a local creator inbox.</li>
-                <li>The creator can review it and change the status.</li>
-                <li>The request stays connected to the chosen maker.</li>
+                <li>The form saves to a real Guild creator account.</li>
+                <li>The creator can review it and change the status in Inbox.</li>
+                <li>The request is shared through Supabase instead of one browser.</li>
               </ol>
             </div>
+
+            {loadingMessage ? (
+              <div className={styles.sideCard}>
+                <p className={styles.cardLabel}>Setup note</p>
+                <p>{loadingMessage}</p>
+              </div>
+            ) : null}
           </aside>
         </section>
       </section>

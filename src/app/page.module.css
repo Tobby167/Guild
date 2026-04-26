@@ -26,14 +26,7 @@
 }
 
 .backdrop {
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  background:
-    radial-gradient(circle at top right, var(--accent-soft), transparent 32%),
-    radial-gradient(circle at 12% 18%, rgba(200, 161, 90, 0.18), transparent 24%),
-    linear-gradient(135deg, rgba(255, 255, 255, 0.3), transparent 42%);
-  pointer-events: none;
+  display: none;
 }
 
 .heroShell,

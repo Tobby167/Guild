@@ -8,7 +8,7 @@ import {
   getCurrentSession,
   type GuildRole,
 } from "@/lib/guild-demo-state";
-import { getSupabaseBrowserClient } from "@/lib/supabase/client";
+import { getSupabaseBrowserClient, isSupabaseConfigured } from "@/lib/supabase/client";
 import { signOutSupabase, upsertSupabaseProfile } from "@/lib/supabase/profiles";
 import styles from "./page.module.css";
 
@@ -65,6 +65,13 @@ export default function JoinPage() {
     setMessage("");
 
     try {
+      if (!isSupabaseConfigured()) {
+        setMessage(
+          "Guild is missing its Supabase keys in Vercel settings, so hosted signup cannot finish yet.",
+        );
+        return;
+      }
+
       const supabase = getSupabaseBrowserClient();
       const normalizedEmail = email.trim().toLowerCase();
       const { data, error } = await supabase.auth.signUp({
@@ -111,7 +118,7 @@ export default function JoinPage() {
       );
     } catch {
       setMessage(
-        "Supabase is connected, but Guild still needs the profiles table SQL before this flow can finish cleanly.",
+        "Guild could not finish signup cleanly yet. Check the Supabase setup and try again.",
       );
     } finally {
         setIsSaving(false);

@@ -7,7 +7,7 @@ import {
   clearCurrentSession,
   getCurrentSession,
 } from "@/lib/guild-demo-state";
-import { getSupabaseBrowserClient } from "@/lib/supabase/client";
+import { getSupabaseBrowserClient, isSupabaseConfigured } from "@/lib/supabase/client";
 import { ensureProfileFromSupabaseUser, signOutSupabase } from "@/lib/supabase/profiles";
 import styles from "./app-frame.module.css";
 
@@ -95,6 +95,10 @@ export function AppFrame({ children }: { children: ReactNode }) {
   );
 
   useEffect(() => {
+    if (!isSupabaseConfigured()) {
+      return;
+    }
+
     const supabase = getSupabaseBrowserClient();
 
     supabase.auth

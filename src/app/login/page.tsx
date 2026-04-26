@@ -6,7 +6,7 @@ import { useMemo, useState } from "react";
 import {
   getDemoProfiles,
 } from "@/lib/guild-demo-state";
-import { getSupabaseBrowserClient } from "@/lib/supabase/client";
+import { getSupabaseBrowserClient, isSupabaseConfigured } from "@/lib/supabase/client";
 import { ensureProfileFromSupabaseUser } from "@/lib/supabase/profiles";
 import styles from "./page.module.css";
 
@@ -30,6 +30,13 @@ export default function LoginPage() {
     setMessage("");
 
     try {
+      if (!isSupabaseConfigured()) {
+        setMessage(
+          "Guild is missing its Supabase keys in Vercel settings, so hosted login cannot finish yet.",
+        );
+        return;
+      }
+
       const supabase = getSupabaseBrowserClient();
       const { data, error } = await supabase.auth.signInWithPassword({
         email: email.trim().toLowerCase(),
@@ -54,7 +61,7 @@ export default function LoginPage() {
       router.refresh();
     } catch {
       setMessage(
-        "Guild still needs the profiles table SQL before Supabase login can finish cleanly.",
+        "Guild could not finish login cleanly yet. Check the Supabase setup and try again.",
       );
     } finally {
       setIsSaving(false);

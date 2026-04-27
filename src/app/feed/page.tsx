@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { guildCategories, type GuildCategory } from "@/lib/guild-data";
 import { getCurrentSession } from "@/lib/guild-demo-state";
-import { deleteWorkPost, fetchWorkPosts, type GuildWorkPost } from "@/lib/supabase/works";
+import { fetchWorkPosts, type GuildWorkPost } from "@/lib/supabase/works";
 import styles from "./page.module.css";
 
 type FeedFilter = "All" | GuildCategory;
@@ -271,35 +271,6 @@ export default function FeedPage() {
                       <span>{work.lead_time}</span>
                     </div>
 
-                    {ownWork ? (
-                      <div className={styles.localActionRow}>
-                        <Link
-                          href={`/studio/edit/${work.id}`}
-                          className={styles.editButton}
-                        >
-                          Edit post
-                        </Link>
-                        <button
-                          type="button"
-                          className={styles.deleteButton}
-                          onClick={async () => {
-                            if (!window.confirm(`Delete "${work.title}" from the feed?`)) {
-                              return;
-                            }
-
-                            try {
-                              await deleteWorkPost(work.id, work.image_path);
-                              const next = await fetchWorkPosts();
-                              setWorkPosts(next);
-                            } catch {
-                              setMessage("Guild could not delete that post yet.");
-                            }
-                          }}
-                        >
-                          Delete post
-                        </button>
-                      </div>
-                    ) : null}
                   </div>
                 </article>
               );

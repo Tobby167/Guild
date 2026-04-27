@@ -15,9 +15,15 @@ create table if not exists public.work_posts (
   summary text not null,
   materials text[] not null default '{}',
   image_label text not null,
+  image_path text,
+  image_url text,
   image_data_url text,
   created_at timestamptz not null default timezone('utc', now())
 );
+
+alter table public.work_posts add column if not exists image_path text;
+alter table public.work_posts add column if not exists image_url text;
+alter table public.work_posts add column if not exists image_data_url text;
 
 alter table public.work_posts enable row level security;
 

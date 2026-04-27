@@ -91,13 +91,13 @@ export default function FeedPage() {
   );
 
   const buildCardStyle = (work: GuildWorkPost, imageHeight: string): FeedCardStyle => {
-    if (work.image_data_url) {
+    if (work.image_url) {
       return {
         "--tone-a": feedPalette[0],
         "--tone-b": feedPalette[1],
         "--tone-c": feedPalette[2],
         "--image-height": imageHeight,
-        backgroundImage: `linear-gradient(rgba(19, 14, 10, 0.28), rgba(19, 14, 10, 0.18)), url(${work.image_data_url})`,
+        backgroundImage: `linear-gradient(rgba(19, 14, 10, 0.28), rgba(19, 14, 10, 0.18)), url(${work.image_url})`,
         backgroundSize: "cover",
         backgroundPosition: "center",
       };
@@ -273,6 +273,12 @@ export default function FeedPage() {
 
                     {ownWork ? (
                       <div className={styles.localActionRow}>
+                        <Link
+                          href={`/studio/edit/${work.id}`}
+                          className={styles.editButton}
+                        >
+                          Edit post
+                        </Link>
                         <button
                           type="button"
                           className={styles.deleteButton}
@@ -282,7 +288,7 @@ export default function FeedPage() {
                             }
 
                             try {
-                              await deleteWorkPost(work.id);
+                              await deleteWorkPost(work.id, work.image_path);
                               const next = await fetchWorkPosts();
                               setWorkPosts(next);
                             } catch {

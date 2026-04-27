@@ -5,7 +5,12 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { getCurrentSession, getDemoProfiles } from "@/lib/guild-demo-state";
-import { deleteWorkPost, fetchWorkPostsForCreator, type GuildWorkPost } from "@/lib/supabase/works";
+import {
+  deleteWorkPost,
+  fetchWorkPostsForCreator,
+  migrateLegacyWorkPostImage,
+  type GuildWorkPost,
+} from "@/lib/supabase/works";
 import styles from "./page.module.css";
 
 function StudioPageImpl() {
@@ -23,9 +28,35 @@ function StudioPageImpl() {
 
     let active = true;
     void fetchWorkPostsForCreator(session.profileId)
-      .then((data) => {
+      .then(async (data) => {
         if (active) {
           setUploads(data);
+        }
+
+        const legacyPosts = data.filter((work) => work.image_data_url && !work.image_url);
+
+        if (!legacyPosts.length) {
+          return;
+        }
+
+        try {
+          const migrated = await Promise.all(
+            data.map((work) =>
+              work.image_data_url && !work.image_url
+                ? migrateLegacyWorkPostImage(work)
+                : Promise.resolve(work),
+            ),
+          );
+
+          if (active) {
+            setUploads(migrated);
+          }
+        } catch {
+          if (active) {
+            setMessage(
+              "Guild loaded your work, but some older images still need a storage refresh.",
+            );
+          }
         }
       })
       .catch(() => {
@@ -136,10 +167,10 @@ function StudioPageImpl() {
                 <div className={styles.uploadGrid}>
                   {uploads.map((work) => (
                     <article key={work.id} className={styles.uploadCard}>
-                      {work.image_data_url ? (
+                      {work.image_url || work.image_data_url ? (
                         <Image
                           className={styles.uploadImage}
-                          src={work.image_data_url}
+                          src={work.image_url ?? work.image_data_url ?? ""}
                           alt={work.title}
                           width={720}
                           height={520}
@@ -160,6 +191,12 @@ function StudioPageImpl() {
                           <span>{work.lead_time}</span>
                         </div>
                         <div className={styles.uploadActions}>
+                          <Link
+                            href={`/studio/edit/${work.id}`}
+                            className={styles.editButton}
+                          >
+                            Edit post
+                          </Link>
                           <button
                             type="button"
                             className={styles.deleteButton}
@@ -169,7 +206,7 @@ function StudioPageImpl() {
                               }
 
                               try {
-                                await deleteWorkPost(work.id);
+                                await deleteWorkPost(work.id, work.image_path);
                                 const next = await fetchWorkPostsForCreator(session.profileId);
                                 setUploads(next);
                               } catch {

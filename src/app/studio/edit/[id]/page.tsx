@@ -3,13 +3,16 @@
 import dynamic from "next/dynamic";
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
 import { guildCategories, type GuildCategory, type GuildWork } from "@/lib/guild-data";
 import { getCurrentSession } from "@/lib/guild-demo-state";
-import { createWorkPost } from "@/lib/supabase/works";
-import { getDemoProfiles } from "@/lib/guild-demo-state";
-import styles from "./page.module.css";
+import {
+  fetchWorkPostForCreator,
+  updateWorkPost,
+  type GuildWorkPost,
+} from "@/lib/supabase/works";
+import styles from "../../new/page.module.css";
 
 const formats: GuildWork["format"][] = [
   "Finished Piece",
@@ -17,8 +20,15 @@ const formats: GuildWork["format"][] = [
   "Custom Example",
 ];
 
-function NewStudioPageImpl() {
+function EditStudioWorkPageImpl() {
+  const params = useParams<{ id: string }>();
   const router = useRouter();
+  const session = getCurrentSession();
+  const creatorMode = session?.role === "creator" || session?.role === "both";
+  const workId = typeof params?.id === "string" ? params.id : "";
+
+  const [loading, setLoading] = useState(true);
+  const [work, setWork] = useState<GuildWorkPost | null>(null);
   const [title, setTitle] = useState("");
   const [category, setCategory] = useState<GuildCategory>("Crochet");
   const [format, setFormat] = useState<GuildWork["format"]>("Finished Piece");
@@ -32,13 +42,52 @@ function NewStudioPageImpl() {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [message, setMessage] = useState("");
   const [isSaving, setIsSaving] = useState(false);
-  const session = getCurrentSession();
 
-  const creatorMode = session?.role === "creator" || session?.role === "both";
-  const creatorSlug = session?.creatorSlug;
-  const profile = session?.profileId
-    ? getDemoProfiles().find((item) => item.id === session.profileId) ?? null
-    : null;
+  useEffect(() => {
+    if (!creatorMode || !session?.profileId || !workId) {
+      return;
+    }
+
+    let active = true;
+
+    void fetchWorkPostForCreator(workId, session.profileId)
+      .then((data) => {
+        if (!active) {
+          return;
+        }
+
+        if (!data) {
+          setMessage("Guild could not find that post under your creator account.");
+          setLoading(false);
+          return;
+        }
+
+        setWork(data);
+        setTitle(data.title);
+        setCategory(data.category);
+        setFormat(data.format);
+        setPriceRange(data.price_range);
+        setLeadTime(data.lead_time);
+        setSummary(data.summary);
+        setMaterials(data.materials.join(", "));
+        setImageLabel(data.image_label);
+        setCommissionReady(data.commission_ready);
+        setImagePreviewSrc(data.image_url ?? data.image_data_url ?? undefined);
+        setLoading(false);
+      })
+      .catch(() => {
+        if (active) {
+          setMessage(
+            "Guild could not load that post cleanly yet. Check the work_posts setup and try again.",
+          );
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [creatorMode, session?.profileId, workId]);
 
   const previewLabel = useMemo(
     () => imageLabel.trim() || title.trim() || "Uploaded work",
@@ -49,8 +98,6 @@ function NewStudioPageImpl() {
     const file = event.target.files?.[0];
 
     if (!file) {
-      setImagePreviewSrc(undefined);
-      setImageFile(null);
       return;
     }
 
@@ -65,8 +112,8 @@ function NewStudioPageImpl() {
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    if (!creatorMode || !session?.creatorName || !creatorSlug) {
-      setMessage("Join Guild as a creator before uploading work.");
+    if (!creatorMode || !session?.creatorName || !workId || !work) {
+      setMessage("Join Guild as a creator before editing work.");
       return;
     }
 
@@ -79,9 +126,9 @@ function NewStudioPageImpl() {
     setMessage("");
 
     try {
-      await createWorkPost({
+      await updateWorkPost({
+        workId,
         session,
-        verified: profile?.verified ?? false,
         title: title.trim(),
         category,
         format,
@@ -95,14 +142,14 @@ function NewStudioPageImpl() {
           .filter(Boolean),
         imageLabel: previewLabel,
         imageFile,
+        existingImagePath: work.image_path,
+        existingImageUrl: work.image_url,
       });
 
       router.push("/studio");
       router.refresh();
     } catch {
-      setMessage(
-        "Guild still needs the work_posts table SQL run in Supabase before uploads can save there.",
-      );
+      setMessage("Guild could not save those changes yet.");
     } finally {
       setIsSaving(false);
     }
@@ -113,21 +160,36 @@ function NewStudioPageImpl() {
       <div className={styles.backdrop} aria-hidden="true" />
 
       <section className={styles.shell}>
-        {!creatorMode || !creatorSlug ? (
+        {!creatorMode || !session?.creatorSlug ? (
           <section className={styles.emptyState}>
-            <p className={styles.eyebrow}>Upload work</p>
+            <p className={styles.eyebrow}>Edit work</p>
             <h1>You need a creator identity first.</h1>
-            <p>Join Guild as a creator, then come back to upload your work.</p>
+            <p>Join Guild as a creator, then come back to edit your work.</p>
             <Link href="/join" className={styles.primaryButton}>
               Join as creator
+            </Link>
+          </section>
+        ) : loading ? (
+          <section className={styles.emptyState}>
+            <p className={styles.eyebrow}>Edit work</p>
+            <h1>Loading your post.</h1>
+            <p>Guild is pulling the current details into the editor.</p>
+          </section>
+        ) : !work ? (
+          <section className={styles.emptyState}>
+            <p className={styles.eyebrow}>Edit work</p>
+            <h1>We couldn&apos;t open that piece.</h1>
+            <p>{message || "This post may not belong to your current creator account."}</p>
+            <Link href="/studio" className={styles.primaryButton}>
+              Return to studio
             </Link>
           </section>
         ) : (
           <section className={styles.layout}>
             <form className={styles.form} onSubmit={handleSubmit}>
               <div className={styles.sectionHeading}>
-                <p className={styles.eyebrow}>New work</p>
-                <h1>Upload a piece for your Guild studio.</h1>
+                <p className={styles.eyebrow}>Edit work</p>
+                <h1>Update your Guild post.</h1>
               </div>
 
               <div className={styles.fieldGrid}>
@@ -212,7 +274,7 @@ function NewStudioPageImpl() {
               </label>
 
               <label className={styles.field}>
-                <span>Upload image</span>
+                <span>Replace image</span>
                 <input type="file" accept="image/*" onChange={handleFileChange} />
               </label>
 
@@ -227,12 +289,11 @@ function NewStudioPageImpl() {
 
               <div className={styles.actionRow}>
                 <button type="submit" className={styles.primaryButton} disabled={isSaving}>
-                  Save to studio
+                  Save changes
                 </button>
-                <p className={styles.helperText}>
-                  This now saves the upload to Guild&apos;s Supabase-backed post
-                  table instead of only to local browser storage.
-                </p>
+                <Link href="/studio" className={styles.secondaryButton}>
+                  Cancel
+                </Link>
               </div>
 
               {message ? <p className={styles.message}>{message}</p> : null}
@@ -270,4 +331,4 @@ function NewStudioPageImpl() {
   );
 }
 
-export default dynamic(() => Promise.resolve(NewStudioPageImpl), { ssr: false });
+export default dynamic(() => Promise.resolve(EditStudioWorkPageImpl), { ssr: false });

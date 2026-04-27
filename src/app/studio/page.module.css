@@ -161,18 +161,21 @@
 }
 
 .uploadGrid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  display: flex;
+  flex-wrap: wrap;
   gap: 20px;
 }
 
 .uploadCard {
+  flex: 0 1 380px;
+  width: min(100%, 380px);
   overflow: hidden;
 }
 
 .uploadImage,
 .uploadPlaceholder {
   width: 100%;
+  height: 220px;
   min-height: 220px;
 }
 
@@ -201,6 +204,13 @@
   font-size: 1.3rem;
 }
 
+.uploadBody p {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+}
+
 .metaRow {
   display: flex;
   flex-wrap: wrap;
@@ -211,9 +221,12 @@
 
 .uploadActions {
   display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
   padding-top: 4px;
 }
 
+.editButton,
 .deleteButton {
   display: inline-flex;
   align-items: center;
@@ -229,9 +242,14 @@
   cursor: pointer;
 }
 
+.editButton {
+  background: rgba(24, 75, 73, 0.08);
+  border-color: rgba(24, 75, 73, 0.16);
+  color: #184b49;
+}
+
 @media (max-width: 980px) {
-  .hero,
-  .uploadGrid {
+  .hero {
     grid-template-columns: 1fr;
   }
 }

@@ -167,16 +167,16 @@
 }
 
 .uploadCard {
-  flex: 0 1 380px;
-  width: min(100%, 380px);
+  flex: 0 1 460px;
+  width: min(100%, 460px);
   overflow: hidden;
 }
 
 .uploadImage,
 .uploadPlaceholder {
   width: 100%;
-  height: 220px;
-  min-height: 220px;
+  height: 300px;
+  min-height: 300px;
 }
 
 .uploadImage {
@@ -252,6 +252,11 @@
   .hero {
     grid-template-columns: 1fr;
   }
+
+  .uploadCard {
+    flex-basis: 420px;
+    width: min(100%, 420px);
+  }
 }
 
 @media (max-width: 720px) {
@@ -282,5 +287,16 @@
   .sectionHeading h2,
   .emptyState h1 {
     font-size: 2.2rem;
+  }
+
+  .uploadCard {
+    width: 100%;
+    flex-basis: 100%;
+  }
+
+  .uploadImage,
+  .uploadPlaceholder {
+    height: 260px;
+    min-height: 260px;
   }
 }

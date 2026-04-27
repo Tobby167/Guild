@@ -34,6 +34,8 @@ const roles: Array<{
   },
 ];
 
+const GUILD_EMAIL_REDIRECT_URL = "https://guild-psi-teal.vercel.app/login";
+
 export default function JoinPage() {
   const router = useRouter();
   const [role, setRole] = useState<GuildRole>("creator");
@@ -78,6 +80,7 @@ export default function JoinPage() {
         email: normalizedEmail,
         password: password.trim(),
         options: {
+          emailRedirectTo: GUILD_EMAIL_REDIRECT_URL,
           data: {
             name: name.trim(),
             role,

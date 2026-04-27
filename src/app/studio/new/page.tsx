@@ -237,20 +237,23 @@ function NewStudioPageImpl() {
 
             <aside className={styles.previewCard}>
               <p className={styles.cardLabel}>Preview</p>
-              {imageDataUrl ? (
-                <Image
-                  className={styles.previewImage}
-                  src={imageDataUrl}
-                  alt={previewLabel}
-                  width={720}
-                  height={520}
-                  unoptimized
-                />
-              ) : (
-                <div className={styles.previewPlaceholder}>
+              <div className={styles.previewMedia}>
+                {imageDataUrl ? (
+                  <Image
+                    className={styles.previewImage}
+                    src={imageDataUrl}
+                    alt={previewLabel}
+                    width={720}
+                    height={520}
+                    unoptimized
+                  />
+                ) : (
+                  <div className={styles.previewPlaceholder} />
+                )}
+                <div className={styles.previewCaption}>
                   <strong>{previewLabel}</strong>
                 </div>
-              )}
+              </div>
               <div className={styles.previewBody}>
                 <span>{format}</span>
                 <h2>{title || "Untitled upload"}</h2>
